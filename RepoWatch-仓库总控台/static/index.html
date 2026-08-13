@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepoWatch · 仓库总控台</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">⬢</span> RepoWatch <span class="sub">仓库总控台</span></div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <input id="search" type="text" placeholder="搜索仓库…">
+    <select id="sort">
+      <option value="time">按最后提交</option>
+      <option value="name">按名称</option>
+      <option value="dirty">按变更数</option>
+    </select>
+    <button id="rescan" class="btn">⟳ 重新扫描</button>
+    <button id="snapshotAll" class="btn primary">⚡ 全部快照</button>
+    <button id="rootsBtn" class="btn">扫描范围</button>
+  </div>
+</header>
+<main>
+  <div id="notice" class="notice"></div>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" hidden>暂未发现仓库。可以点击「扫描范围」添加根目录。</div>
+</main>
+<footer id="footer"></footer>
+
+<div id="modalRoots" class="modal" hidden>
+  <div class="modal-box">
+    <h3>扫描根目录</h3>
+    <p class="path" style="cursor:default">从这里递归向下找 .git 目录（最深 6 层，跳过 node_modules 等）。</p>
+    <ul id="rootsList" class="roots"></ul>
+    <div class="row"><input id="newRoot" type="text" placeholder="例如 D:\code"><button id="addRoot" class="btn">添加</button></div>
+    <div class="row end"><button id="closeRoots" class="btn ghost">关闭</button></div>
+  </div>
+</div>
+
+<div id="modalSnap" class="modal" hidden>
+  <div class="modal-box">
+    <h3 id="snapTitle">快照提交</h3>
+    <p class="path" style="cursor:default">执行 git add -A → commit → push（有上游时）。</p>
+    <input id="snapMessage" type="text" placeholder="提交信息（留空使用默认：chore: snapshot 日期 时间）">
+    <div id="snapLog" class="log">等待执行…</div>
+    <div class="row end">
+      <button id="closeSnap" class="btn ghost">关闭</button>
+      <button id="runSnap" class="btn primary">执行快照</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
