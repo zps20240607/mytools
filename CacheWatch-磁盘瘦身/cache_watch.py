@@ -660,6 +660,7 @@ def cli_scan(args):
 
 def cli_clean(args):
     items, _ = build_items(load_config())
+    STATE['items'] = items
     item = next((i for i in items if i["id"] == args.id), None)
     if not item:
         print("未找到清理项: %s" % args.id)

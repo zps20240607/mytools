@@ -45,7 +45,6 @@ GIT_TIMEOUT = 20
 AUTO_RESCAN_SECONDS = 60
 COOKIE_NAME = "repowatch_session"
 DEFAULT_EDITOR = "code"
-DEFAULT_EDITOR = "code"
 MAX_BODY = 256 * 1024
 
 # 扫描时跳过的目录（小写比较）

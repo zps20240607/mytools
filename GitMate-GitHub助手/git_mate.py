@@ -467,15 +467,16 @@ def publish(path, repo_name=None, private=None, description="", message=None,
             raise RuntimeError("git init 失败: %s" % err)
         steps.append({"step": "init", "ok": True, "detail": "已初始化为 Git 仓库"})
 
+    rc, old_remote, _ = git(path, "remote", "get-url", "origin", timeout=10)
+    if rc == 0 and old_remote and not overwrite_remote:
+        raise RuntimeError("本地已有关联远程 origin (%s)。如需替换，请勾选「覆盖已有 origin」。" % old_remote)
+
     steps.append({"step": "create", "ok": True, "detail": "正在 GitHub 创建仓库 %s …" % repo_name})
     created = gh_create_repo(repo_name, description, bool(private))
     clone_url = created.get("clone_url") or created.get("html_url") + ".git"
     steps[-1]["detail"] = "GitHub 仓库已创建: %s" % (created.get("html_url") or repo_name)
 
-    rc, old_remote, _ = git(path, "remote", "get-url", "origin", timeout=10)
     if rc == 0 and old_remote:
-        if not overwrite_remote:
-            raise RuntimeError("本地已有关联远程 origin (%s)。如需替换，请勾选「覆盖已有 origin」。" % old_remote)
         rc, out, err = git(path, "remote", "set-url", "origin", clone_url, timeout=30)
         steps.append({"step": "remote", "ok": rc == 0, "detail": "origin 已更新为 %s" % clone_url})
     else:
@@ -490,7 +491,12 @@ def publish(path, repo_name=None, private=None, description="", message=None,
         rc, out, err = git(path, "commit", "--allow-empty", "-m",
                            message or ("chore: snapshot %s" % time.strftime("%Y-%m-%d %H:%M")),
                            timeout=120)
-        steps.append({"step": "commit", "ok": rc == 0, "detail": "空仓库，创建初始提交"})
+        detail = (out + "\n" + err).strip() or ("已创建初始提交" if rc == 0 else "提交失败")
+        steps.append({"step": "commit", "ok": rc == 0, "detail": detail})
+    rc_head, _, _ = git(path, "rev-parse", "HEAD")
+    if rc_head != 0:
+        steps.append({"step": "push", "ok": False, "detail": "仓库没有可推送的提交（前面的提交步骤失败）"})
+        return {"ok": False, "steps": steps, "html_url": created.get("html_url", ""), "clone_url": clone_url}
     rc, out, err = git(path, "push", "-u", "origin", "HEAD", timeout=600)
     steps.append({"step": "push", "ok": rc == 0, "detail": (out + "\n" + err).strip()})
     if rc == 0:

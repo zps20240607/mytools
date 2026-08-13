@@ -104,12 +104,13 @@ def load_prices():
                     if isinstance(r, dict) and str(r.get("pattern", "")).strip():
                         clean.append({
                             "pattern": str(r["pattern"]).strip().lower(),
-                            "input": float(r.get("input", 0) or 0),
-                            "output": float(r.get("output", 0) or 0),
-                            "cached": float(r.get("cached", 0) or 0),
-                            "cache_write": float(r.get("cache_write", 0) or 0),
+                            "input": _to_float(r.get("input", 0)),
+                            "output": _to_float(r.get("output", 0)),
+                            "cached": _to_float(r.get("cached", 0)),
+                            "cache_write": _to_float(r.get("cache_write", 0)),
                             "name": str(r.get("name") or r["pattern"]),
                         })
+                clean = [r for r in clean if not any(r[k] is None for k in _PRICE_KEYS)]
                 clean.sort(key=lambda r: len(r["pattern"]), reverse=True)
                 prices["rules"] = clean
             if isinstance(data.get("fallback"), dict):
@@ -130,6 +131,14 @@ def save_prices(prices):
         json.dump(prices, f, ensure_ascii=False, indent=2)
     os.replace(tmp, PRICES_PATH)
 
+
+def _to_float(v):
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return None
+
+_PRICE_KEYS = tuple('input output cached cache_write'.split())
 
 def match_price(model, prices):
     lower = (model or "").lower()
