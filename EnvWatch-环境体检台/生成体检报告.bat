@@ -1,17 +1,17 @@
 @echo off
-chcp 65001 >nul
-title EnvWatch çŽ¯å¢ƒä½“æ£€å°
+chcp 936 >nul
+title EnvWatch »·¾³Ìå¼ìÌ¨
 cd /d "%~dp0"
 echo ============================================
-echo    EnvWatch çŽ¯å¢ƒä½“æ£€å° - ç”Ÿæˆä½“æ£€æŠ¥å‘Š...
+echo    EnvWatch »·¾³Ìå¼ìÌ¨ - Éú³ÉÌå¼ì±¨¸æ...
 echo ============================================
 where python >nul 2>nul
 if errorlevel 1 (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° pythonï¼Œè¯·å…ˆå®‰è£… Python 3ã€‚
+    echo [´íÎó] Î´ÕÒµ½ python£¬ÇëÏÈ°²×° Python 3¡£
     pause
     exit /b 1
 )
 python "%~dp0env_watch.py"
 echo.
-echo æŠ¥å‘Šå·²ä¿å­˜åˆ° data\report.htmlï¼Œå¦‚éœ€é‡æ–°ç”Ÿæˆç›´æŽ¥å†è¿è¡Œæœ¬è„šæœ¬ã€‚
+echo ±¨¸æÒÑ±£´æµ½ data\report.html£¬ÈçÐèÖØÐÂÉú³ÉÖ±½ÓÔÙÔËÐÐ±¾½Å±¾¡£
 pause

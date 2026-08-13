@@ -1,6 +1,6 @@
 @echo off
-chcp 65001 >nul
-title CostWatch - åœæ­¢
+chcp 936 >nul
+title CostWatch - Í£Ö¹
 cd /d "%~dp0"
-powershell -NoProfile -Command "$p = Get-Content -LiteralPath 'data\server.pid' -ErrorAction SilentlyContinue; if ($p) { $proc = Get-Process -Id $p -ErrorAction SilentlyContinue; if ($proc) { Stop-Process -Id $p -Force; Write-Host ('å·²åœæ­¢æŽ§åˆ¶å° (pid ' + $p + ')') } else { Write-Host 'æœªå‘çŽ°è¿è¡Œä¸­çš„æŽ§åˆ¶å°è¿›ç¨‹ï¼ˆè®°å½•å·²è¿‡æœŸï¼‰ã€‚' }; Remove-Item -LiteralPath 'data\server.pid' -Force -ErrorAction SilentlyContinue } else { Write-Host 'æœªæ‰¾åˆ°è¿è¡Œè®°å½•ï¼ŒæŽ§åˆ¶å°å¯èƒ½æœªåœ¨è¿è¡Œã€‚' }"
+powershell -NoProfile -Command "$p = Get-Content -LiteralPath 'data\server.pid' -ErrorAction SilentlyContinue; if ($p) { $proc = Get-Process -Id $p -ErrorAction SilentlyContinue; if ($proc) { Stop-Process -Id $p -Force; Write-Host ('ÒÑÍ£Ö¹¿ØÖÆÌ¨ (pid ' + $p + ')') } else { Write-Host 'Î´·¢ÏÖÔËÐÐÖÐµÄ¿ØÖÆÌ¨½ø³Ì£¨¼ÇÂ¼ÒÑ¹ýÆÚ£©¡£' }; Remove-Item -LiteralPath 'data\server.pid' -Force -ErrorAction SilentlyContinue } else { Write-Host 'Î´ÕÒµ½ÔËÐÐ¼ÇÂ¼£¬¿ØÖÆÌ¨¿ÉÄÜÎ´ÔÚÔËÐÐ¡£' }"
 timeout /t 3 /nobreak >nul

@@ -1,13 +1,13 @@
 @echo off
-chcp 65001 >nul
-title RepoWatch ä»“åº“æ€»æŽ§å°
+chcp 936 >nul
+title RepoWatch ²Ö¿â×Ü¿ØÌ¨
 cd /d "%~dp0"
 echo ============================================
-echo    RepoWatch ä»“åº“æ€»æŽ§å° - å¯åŠ¨ä¸­...
+echo    RepoWatch ²Ö¿â×Ü¿ØÌ¨ - Æô¶¯ÖÐ...
 echo ============================================
 where pythonw >nul 2>nul
 if errorlevel 1 (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° pythonwï¼Œè¯·å…ˆå®‰è£… Python 3ã€‚
+    echo [´íÎó] Î´ÕÒµ½ pythonw£¬ÇëÏÈ°²×° Python 3¡£
     pause
     exit /b 1
 )
@@ -26,8 +26,8 @@ for /L %%p in (9610,1,9619) do (
 :found
 if "%OK%"=="1" (
     start "" "http://127.0.0.1:%OKPORT%/"
-    echo æŽ§åˆ¶å°å·²å¯åŠ¨å¹¶è‡ªåŠ¨æ‰“å¼€ï¼Œç«¯å£ %OKPORT%ã€‚
+    echo ¿ØÖÆÌ¨ÒÑÆô¶¯²¢×Ô¶¯´ò¿ª£¬¶Ë¿Ú %OKPORT%¡£
 ) else (
-    echo [æç¤º] æœªæ£€æµ‹åˆ°æœåŠ¡å“åº”ï¼Œè¯·æŸ¥çœ‹ data\logs\console.log
+    echo [ÌáÊ¾] Î´¼ì²âµ½·þÎñÏìÓ¦£¬Çë²é¿´ data\logs\console.log
 )
 timeout /t 3 /nobreak >nul
