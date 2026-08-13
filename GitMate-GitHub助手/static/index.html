@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitMate · GitHub 图形助手</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">🐙</span> GitMate <span class="sub">GitHub 图形助手</span></div>
+  <div class="tabs">
+    <button class="tab active" data-tab="local">本地仓库</button>
+    <button class="tab" data-tab="github">我的 GitHub 仓库</button>
+  </div>
+  <div class="controls">
+    <button id="refreshBtn" class="btn">⟳ 刷新</button>
+    <button id="settingsBtn" class="btn">设置</button>
+  </div>
+</header>
+<main>
+  <div id="authBanner"></div>
+  <div id="localView">
+    <div class="grid" id="localGrid"></div>
+    <div id="localEmpty" class="empty" hidden>未发现 Git 仓库。可在「设置」中添加扫描根目录。</div>
+  </div>
+  <div id="ghView" hidden>
+    <div class="grid" id="ghGrid"></div>
+    <div id="ghEmpty" class="empty" hidden>还没有 GitHub 仓库，或凭据未配置。</div>
+  </div>
+</main>
+<footer id="footer"></footer>
+
+<div id="modalPublish" class="modal" hidden>
+  <div class="modal-box">
+    <h3>发布到 GitHub（创建对应仓库并推送）</h3>
+    <div class="row"><label>本地目录</label><input id="pubPath" type="text" style="flex:1" placeholder="C:\path\to\project"></div>
+    <div class="row">
+      <label>仓库名</label><input id="pubName" type="text" style="width:200px">
+      <label><input type="checkbox" id="pubPrivate"> 私有仓库</label>
+      <label><input type="checkbox" id="pubOverwrite"> 覆盖已有 origin</label>
+    </div>
+    <div class="row"><label>描述</label><input id="pubDesc" type="text" style="flex:1"></div>
+    <div class="row"><label>提交信息</label><input id="pubMessage" type="text" style="flex:1" placeholder="留空用默认：chore: snapshot 时间"></div>
+    <p class="desc">流程：git init（如需要）→ GitHub 建仓 → 关联 origin → 提交变更 → 推送。已有未提交变更会先快照提交。</p>
+    <div id="pubLog" class="log">等待执行…</div>
+    <div class="row end">
+      <button id="closePublish" class="btn ghost">关闭</button>
+      <button id="runPublish" class="btn primary">开始发布</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalBranch" class="modal" hidden>
+  <div class="modal-box wide">
+    <h3 id="branchTitle">分支管理</h3>
+    <div class="row">
+      <input id="newBranch" type="text" placeholder="新分支名，例如 feature/xxx">
+      <button id="createBranch" class="btn primary">创建并切换</button>
+      <button id="pullBtn" class="btn">拉取（快进）</button>
+      <button id="pushBtn" class="btn">推送当前分支</button>
+      <button id="snapBtn" class="btn">快照提交</button>
+    </div>
+    <div id="conflictBox"></div>
+    <table>
+      <thead><tr><th>分支</th><th>状态</th><th class="num">领先/落后</th><th>上游</th><th class="num">操作</th></tr></thead>
+      <tbody id="branchBody"></tbody>
+    </table>
+    <p class="desc">删除未合并的分支需要勾选「强制删除」；合并当前分支产生冲突时，可在此「放弃合并」。</p>
+    <div class="row end"><button id="closeBranch" class="btn ghost">关闭</button></div>
+  </div>
+</div>
+
+<div id="modalSettings" class="modal" hidden>
+  <div class="modal-box">
+    <h3>设置</h3>
+    <h3 style="font-size:13px;color:var(--muted)">扫描根目录</h3>
+    <ul id="rootsList" class="roots"></ul>
+    <div class="row"><input id="newRoot" type="text" placeholder="例如 D:\code" style="flex:1"><button id="addRoot" class="btn">添加</button></div>
+    <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="defPrivate"> 新建 GitHub 仓库默认私有</label>
+    <div class="row end">
+      <button id="logoutBtn" class="btn danger">清除 GitHub 凭据</button>
+      <button id="closeSettings" class="btn ghost">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

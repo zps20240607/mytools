@@ -12,9 +12,10 @@ Windows 下配合 vibe coding 使用的自研本地工具集。统一风格：**
 | EnvWatch-环境体检台 | 汇总 python/node/uv/git 等版本、路径冲突、PATH 问题，生成体检报告 | `生成体检报告.bat` |
 | CacheWatch-磁盘瘦身 | 可视化 node_modules / .git / __pycache__ / 各类缓存占用，安全一键清理 | `启动控制台.bat` |
 | CostWatch-成本核算 | 基于 TokenWatch 数据库 + 模型价格表，按工具/模型/日期折算 USD 成本 | `启动控制台.bat` |
+| GitMate-GitHub助手 | GitHub 建仓并推送代码、图形化分支管理、我的仓库一键克隆 | `启动控制台.bat` |
 
 ## 通用约定
 
 - 所有 Web 工具只绑定 `127.0.0.1`，写操作校验 HttpOnly 会话 Cookie，勿对外暴露。
-- 端口分段：PortWatch 9600–9609，RepoWatch 9610–9619，EnvWatch 9620–9629，CacheWatch 9630–9639，CostWatch 9640–9649。
+- 端口分段：PortWatch 9600–9609，RepoWatch 9610–9619，EnvWatch 9620–9629，CacheWatch 9630–9639，CostWatch 9640–9649，GitMate 9650–9659。
 - 数据目录默认放各自工具文件夹 `data\`（已 gitignore），全局共享数据在 `~\.token-watch\`。
