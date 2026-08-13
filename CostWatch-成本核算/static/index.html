@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CostWatch · 成本核算</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">💵</span> CostWatch <span class="sub">成本核算</span></div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <select id="days">
+      <option value="7">近 7 天</option>
+      <option value="30" selected>近 30 天</option>
+      <option value="90">近 90 天</option>
+      <option value="0">全部</option>
+    </select>
+    <button id="refresh" class="btn">⟳ 刷新</button>
+    <button id="pricesBtn" class="btn primary">价格表</button>
+  </div>
+</header>
+<main>
+  <div id="notice" class="empty"></div>
+  <div class="cards" id="cards"></div>
+  <section>
+    <h3>每日成本估算（USD）</h3>
+    <div class="chart" id="chart"></div>
+  </section>
+  <section>
+    <h3>按工具</h3>
+    <table><thead><tr><th>工具</th><th class="num">估算成本</th><th class="num">Token</th><th class="num">记录数</th><th class="num">上报成本</th></tr></thead>
+    <tbody id="byTool"></tbody></table>
+  </section>
+  <section>
+    <h3>按模型</h3>
+    <table><thead><tr><th>模型</th><th>匹配价格</th><th class="num">估算成本</th><th class="num">Token</th><th class="num">输入单价</th><th class="num">输出单价</th></tr></thead>
+    <tbody id="byModel"></tbody></table>
+  </section>
+  <section id="unknownSec" hidden>
+    <h3>未匹配价格表的模型</h3>
+    <table><thead><tr><th>模型</th><th class="num">Token</th><th class="num">记录数</th></tr></thead>
+    <tbody id="unknownList"></tbody></table>
+    <p class="hint">在「价格表」中补充规则后，估算会更准确。</p>
+  </section>
+</main>
+<footer id="footer"></footer>
+
+<div id="modalPrices" class="modal" hidden>
+  <div class="modal-box">
+    <h3>模型价格表（USD / 百万 Token）</h3>
+    <p class="hint">rules 按 pattern 最长优先匹配模型名；fallback 用于未匹配模型。input=输入、output=输出、cached=缓存读取、cache_write=缓存写入。reasoning 按 output 单价计。</p>
+    <textarea id="pricesText" spellcheck="false"></textarea>
+    <div class="row end">
+      <button id="resetPrices" class="btn ghost">恢复默认</button>
+      <button id="closePrices" class="btn ghost">关闭</button>
+      <button id="savePrices" class="btn primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
