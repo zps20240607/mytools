@@ -13,6 +13,13 @@
 3. 在「本地仓库」选择仓库 → 分支管理 / 快照 / 推送 / 发布到 GitHub。
 4. 双击 `停止控制台.bat` 停止服务。
 
+## 如何获取 Token（页面内也有分步指引）
+
+- **Classic Token（推荐新手）**：打开 [github.com/settings/tokens/new](https://github.com/settings/tokens/new) → 填 Note（如 GitMate）→ 勾选 **repo** 大项 → Generate token → 复制 `ghp_` 开头的 Token 粘贴到 GitMate。
+- **Fine-grained Token（进阶）**：打开 [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new) → Repository access 选 **All repositories** → 权限勾选 **Contents: Read and write**、**Administration: Read and write**、**Metadata: Read** → 生成后复制 `github_pat_` 开头的 Token。
+
+> Token 仅用于你主动发起的建仓/推送/列仓库操作，经 Windows DPAPI 加密保存在本机 `data\secret.bin`，可随时在「设置」中一键清除。
+
 ## 功能
 
 ### 发布到 GitHub（创建对应仓库并推送）

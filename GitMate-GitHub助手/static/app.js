@@ -64,7 +64,26 @@ function renderAuth() {
       <span>连接 GitHub：粘贴 Personal Access Token（需要 repo 权限）</span>
       <input id="tokenInput" type="password" placeholder="ghp_… 或 github_pat_…">
       <button class="btn primary" id="authBtn">验证并保存</button>
+      <button class="btn ghost" id="helpBtn">如何获取 Token？</button>
       <span class="who">Token 只保存在本机（DPAPI 加密），可在「设置」中清除。</span>`;
+    el.innerHTML += `
+      <div id="tokenHelp" class="help" hidden>
+        <b>方式一（推荐新手）：Classic Token</b>
+        <ol>
+          <li>打开 <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a></li>
+          <li>Note 随便填（如 GitMate）；Expiration 建议选 90 天或更长</li>
+          <li>勾选 <b>repo</b> 大项（连同其全部子项），点击页面底部 Generate token</li>
+          <li>复制 <b>ghp_</b> 开头的 Token，粘到上方输入框，点「验证并保存」</li>
+        </ol>
+        <b>方式二：Fine-grained Token（权限更精细，适合进阶）</b>
+        <ol>
+          <li>打开 <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+          <li>Repository access 选 <b>All repositories</b></li>
+          <li>Permissions 勾选：<b>Contents: Read and write</b>、<b>Administration: Read and write</b>、<b>Metadata: Read</b></li>
+          <li>生成后复制 <b>github_pat_</b> 开头的 Token 粘贴即可</li>
+        </ol>
+        <span class="hint">Token 仅用于你主动发起的建仓/推送/列仓库操作，经 Windows DPAPI 加密保存在本机，可随时在「设置」中清除。</span>
+      </div>`;
     $("authBtn").addEventListener("click", async () => {
       const token = $("tokenInput").value.trim();
       if (!token) { toast("请输入 Token", false); return; }
@@ -77,6 +96,10 @@ function renderAuth() {
       } catch (e) {
         toast("验证失败: " + e.message, false);
       }
+    });
+    $("helpBtn").addEventListener("click", () => {
+      const box = $("tokenHelp");
+      box.hidden = !box.hidden;
     });
   }
 }
