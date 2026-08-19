@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """PortWatch 2.0 后端（Windows 版，API 契约对齐 laogou717/local-ops「总控台」，MIT）。
 
 - 前端与 API 契约 1:1 还原 local-ops，采集层保留 Windows 原生实现
@@ -48,6 +48,7 @@ MAX_LOG_BYTES = 5 * 1024 * 1024
 LOG_BACKUPS = 2
 CREATE_NO_WINDOW = 0x08000000
 TASK_CANCELED_EXIT_CODE = 130
+LOGICAL_CORES = max(1, os.cpu_count() or 1)
 APP_ROUTE_RE = re.compile(
     r"^/api/apps/([0-9a-fA-F]{8})(?:/(start|stop|restart|icon|logs|favicon|diagnose|attach))?$")
 
@@ -1012,6 +1013,52 @@ def build_watched(keywords, snap):
     return result
 
 
+def _cmd_target_paths(app):
+    """从启动命令里提取脚本/程序路径，用于重启后按进程命令行认领。"""
+    cwd = resolve_cwd(app)
+    tokens = _simple_command_tokens(app.get("command") or "") or []
+    paths = set()
+    for tok in tokens:
+        tok = tok.strip('"')
+        if not tok:
+            continue
+        candidate = tok
+        if not os.path.isabs(candidate):
+            candidate = os.path.join(cwd, candidate)
+        try:
+            candidate = os.path.abspath(candidate)
+        except OSError:
+            continue
+        if os.path.isfile(candidate) or re.search(
+                r"\.(py|pyw|ps1|bat|cmd|js|mjs|cjs|ts|tsx|jsx|sh|exe)$", tok, re.I):
+            paths.add(candidate)
+    return paths
+
+
+def _normalize_cmd(cmd):
+    """去掉命令行引号并压缩空白，供 stopPattern 等正则匹配使用。"""
+    return re.sub(r"\s+", " ", (cmd or "").replace('"', "")).strip()
+
+
+def _pid_matches_app(app, pid, cmd):
+    """进程命令行是否属于该应用：runToken、stopPattern 或脚本路径命中。"""
+    cmd = (cmd or "").strip()
+    if not cmd:
+        return False
+    token = app.get("runToken")
+    if token and token in cmd:
+        return True
+    pattern = app.get("stopPattern")
+    if pattern:
+        try:
+            if re.compile(pattern, re.I).search(_normalize_cmd(cmd)):
+                return True
+        except re.error:
+            pass
+    cmd_lower = cmd.lower()
+    return any(p.lower() in cmd_lower for p in _cmd_target_paths(app))
+
+
 def _live_pids(app):
     """受管进程 PID 列表：根进程 + 整棵后代进程树。
 
@@ -1032,9 +1079,29 @@ def _live_pids(app):
         pid = app["lastPid"]
         if pid_alive(pid):
             cmd = cmdline_of(pid)
-            token = app.get("runToken")
-            if not token or (token and token in cmd):
+            if _pid_matches_app(app, pid, cmd):
                 roots.append(pid)
+    if not roots and app.get("stopPattern"):
+        # 包装进程退出后，后台进程会脱离进程树；按正则认领仍存活的匹配进程。
+        try:
+            pattern = re.compile(app["stopPattern"], re.I)
+        except re.error:
+            pattern = None
+        if pattern:
+            with _snap_lock:
+                cmdlines = dict(_snap["cmdlines"])
+            for cpid, cmeta in cmdlines.items():
+                if str(cpid) == str(SELF_PID):
+                    continue
+                try:
+                    cpid_int = int(cpid)
+                except (TypeError, ValueError):
+                    continue
+                if not pid_alive(cpid_int):
+                    continue
+                if pattern.search(_normalize_cmd(cmeta.get("cmdline"))):
+                    roots.append(cpid_int)
+                    break
     if not roots:
         return []
     with _snap_lock:
@@ -1110,6 +1177,7 @@ def build_apps(cfg, listeners, snap):
             "uptimeSec": (live_info or {}).get("etime") if pid else None,
             "kind": app.get("kind") or "service",
             "attached": bool(app.get("attached")),
+            "stopPattern": app.get("stopPattern") or None,
             "lastExit": public_last_exit(app),
             "health": health,
             "ports": actual_ports,
@@ -1125,15 +1193,34 @@ def build_apps(cfg, listeners, snap):
     return apps
 
 
+
+def dedup_by_pid(services, group="mine"):
+    """同进程多端口只计一次，返回 (cpu, mem) 合计（去重后）。"""
+    seen = set()
+    cpu = 0.0
+    mem = 0.0
+    for s in services:
+        if s.get("group") != group or s.get("hidden"):
+            continue
+        pid = s.get("pid")
+        if pid is None or pid in seen:
+            continue
+        seen.add(pid)
+        cpu += s.get("cpu") or 0.0
+        mem += s.get("mem") or 0.0
+    return round(cpu, 1), round(mem, 1)
 def build_state(cfg, console_port, config_health=None):
     degraded_reasons = []
     snap = dict(_snap)
     try:
         services, listeners = build_services(cfg, snap)
+        cpu_pct, mem_pct = dedup_by_pid(services)
     except Exception as e:
         LOG.exception("构建服务监控状态失败")
         services, listeners = [], {}
+        cpu_pct, mem_pct = 0.0, 0.0
         degraded_reasons.append({"component": "services"})
+    cpu_avg_pct = round(cpu_pct / LOGICAL_CORES, 1)
     try:
         watched = build_watched(cfg.get("watchedKeywords"), snap)
     except Exception as e:
@@ -1150,6 +1237,10 @@ def build_state(cfg, console_port, config_health=None):
         degraded_reasons.append({"component": "config", "error": issue})
     return {
         "services": services,
+        "cpuPct": cpu_pct,
+        "cpuAvgPct": cpu_avg_pct,
+        "cpuCores": LOGICAL_CORES,
+        "memPct": mem_pct,
         "watched": watched,
         "apps": apps,
         "watchedKeywords": cfg.get("watchedKeywords") or [],
@@ -1562,6 +1653,9 @@ def app_running(app):
 
 def start_app(cfg, app):
     app_id = app["id"]
+    live = _live_pids(app)
+    if live:
+        return False, "应用已在运行 (pid %s)" % live[0]
     info = _runtime.get(app_id)
     if info and info.get("proc") is not None and info["proc"].poll() is None:
         return False, "应用已在运行 (pid %s)" % info["pid"]
@@ -1651,6 +1745,29 @@ def stop_pid_tree(pid, force=False):
         return False
 
 
+def kill_by_pattern(stop_pattern):
+    """按正则匹配命令行并结束匹配进程树，返回成功结束的进程数。"""
+    if not stop_pattern:
+        return 0
+    try:
+        pattern = re.compile(stop_pattern, re.I)
+    except re.error:
+        return 0
+    with _snap_lock:
+        cmdlines = dict(_snap["cmdlines"])
+    killed = 0
+    for cpid, cmeta in cmdlines.items():
+        if str(cpid) == str(SELF_PID):
+            continue
+        if pattern.search(_normalize_cmd(cmeta.get("cmdline"))):
+            r = subprocess.run(["taskkill", "/PID", str(cpid), "/T", "/F"],
+                               capture_output=True, timeout=15,
+                               creationflags=CREATE_NO_WINDOW)
+            if r.returncode == 0:
+                killed += 1
+    return killed
+
+
 def stop_app_and_clear(cfg, app, force=True):
     """停止应用并记录 stopped 状态。"""
     app_id = app["id"]
@@ -1663,21 +1780,7 @@ def stop_app_and_clear(cfg, app, force=True):
     elif app.get("lastPid") and pid_alive(app["lastPid"]):
         pid = app["lastPid"]
     stop_pattern = app.get("stopPattern")
-    if stop_pattern and pid:
-        try:
-            pattern = re.compile(stop_pattern, re.I)
-        except re.error:
-            pattern = None
-        if pattern:
-            with _snap_lock:
-                cmdlines = dict(_snap["cmdlines"])
-            for cpid, cmeta in cmdlines.items():
-                if str(cpid) == str(SELF_PID):
-                    continue
-                if pattern.search(cmeta.get("cmdline") or ""):
-                    subprocess.run(["taskkill", "/PID", str(cpid), "/T", "/F"],
-                                   capture_output=True, timeout=15,
-                                   creationflags=CREATE_NO_WINDOW)
+    kill_by_pattern(stop_pattern)
     ok = True
     if pid:
         ok = stop_pid_tree(pid, force=force)
@@ -2452,6 +2555,14 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/apps/reorder":
                 self.handle_apps_reorder()
                 return
+            if path == "/api/apps/batch-start":
+                self.discard_body()
+                self.handle_apps_batch_start()
+                return
+            if path == "/api/apps/batch-stop":
+                self.discard_body()
+                self.handle_apps_batch_stop()
+                return
             m = APP_ROUTE_RE.match(path)
             if m:
                 app_id, action = m.group(1), m.group(2)
@@ -2574,6 +2685,9 @@ class Handler(BaseHTTPRequestHandler):
             pid = int(data.get("pid"))
         except (TypeError, ValueError):
             self.send_err(400, "pid 必须是整数")
+            return
+        if pid == SELF_PID or pid <= 4:
+            self.send_json({"ok": False, "error": "拒绝结束 PortWatch 自身或系统进程"}, 400)
             return
         force = bool(data.get("force"))
         ok, msg = kill_process(pid, force)
@@ -2713,6 +2827,44 @@ class Handler(BaseHTTPRequestHandler):
             })
         self.send_json(created)
 
+    def handle_apps_batch_start(self):
+        cfg = self.server.cfg.snapshot()
+        results = []
+        for app in cfg.get("apps") or []:
+            entry = {"id": app.get("id"), "name": app.get("name")}
+            if app_running(app):
+                entry.update({"ok": True, "skipped": True})
+                results.append(entry)
+                continue
+            try:
+                ok, message = start_app(self.server.cfg, app)
+                entry.update({"ok": bool(ok), "message": message})
+            except Exception as e:
+                LOG.exception("批量启动失败: %s", app.get("id"))
+                entry.update({"ok": False, "message": str(e)})
+            results.append(entry)
+        invalidate_state_cache()
+        self.send_json({"ok": True, "results": results})
+
+    def handle_apps_batch_stop(self):
+        cfg = self.server.cfg.snapshot()
+        results = []
+        for app in cfg.get("apps") or []:
+            entry = {"id": app.get("id"), "name": app.get("name")}
+            if not app_running(app):
+                entry.update({"ok": True, "skipped": True})
+                results.append(entry)
+                continue
+            try:
+                ok = stop_app_and_clear(self.server.cfg, app)
+                entry.update({"ok": bool(ok)})
+            except Exception as e:
+                LOG.exception("批量停止失败: %s", app.get("id"))
+                entry.update({"ok": False, "message": str(e)})
+            results.append(entry)
+        invalidate_state_cache()
+        self.send_json({"ok": True, "results": results})
+
     def handle_apps_reorder(self):
         data, err = self.read_json_body()
         if err:
@@ -2770,6 +2922,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_err(404, "应用不存在")
             return
         if not app_running(app):
+            if (app.get("kind") or "service") == "task" and app.get("stopPattern"):
+                killed = kill_by_pattern(app.get("stopPattern"))
+                if killed:
+                    self.send_json({"ok": True, "message": "已停止 %d 个后台进程" % killed})
+                else:
+                    self.send_json({"ok": False, "error": "未发现匹配的后台进程"}, 409)
+                invalidate_state_cache()
+                return
             self.send_json({"ok": False, "error": "应用未在运行"}, 409)
             return
         stop_app_and_clear(self.server.cfg, app)

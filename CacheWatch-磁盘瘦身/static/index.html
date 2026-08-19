@@ -9,7 +9,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><span class="logo">🗑</span> CacheWatch <span class="sub">磁盘瘦身</span></div>
+  <div class="brand"><span class="logo">🗑</span> CacheWatch <span class="sub">磁盘瘦身</span><span class="seal">瘦身</span></div>
   <div class="stats" id="stats"></div>
   <div class="controls">
     <input id="search" type="text" placeholder="搜索路径…">
@@ -25,6 +25,7 @@
     <button id="rescan" class="btn">⟳ 重新扫描</button>
     <button id="cleanAll" class="btn danger">清理全部可清理项</button>
     <button id="rootsBtn" class="btn">扫描范围</button>
+    <button id="themeBtn" class="btn" title="主题切换">🌓</button>
   </div>
 </header>
 <main>
@@ -58,6 +59,7 @@
 </div>
 
 <div id="toast" class="toast" hidden></div>
+<script src="/static/theme.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

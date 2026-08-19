@@ -11,6 +11,8 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+rem [single-instance] stop previous instance and free ports first
+powershell -NoProfile -Command "$pidFile='data\server.pid'; $p=Get-Content -LiteralPath $pidFile -ErrorAction SilentlyContinue; if($p){Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue}; Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue; 9640..9649 | ForEach-Object { Get-NetTCPConnection -State Listen -LocalPort $_ -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess } | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 300"
 start "" pythonw "%~dp0cost_watch.py" --no-browser %*
 timeout /t 3 /nobreak >nul
 set OK=0

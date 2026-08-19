@@ -53,7 +53,7 @@ SKIP_DIRS = {
     ".git", "node_modules", "bower_components", "__pycache__", ".venv", "venv",
     "env", ".env", "site-packages", "dist", "build", "out", ".next", ".nuxt",
     ".cache", ".idea", ".vscode", ".vs", "target", ".gradle", ".mypy_cache",
-    ".pytest_cache", ".ruff_cache", ".tox", "appdata", "windows", "program files",
+    ".pytest_cache", ".ruff_cache", ".tox", ".history", "appdata", "windows", "program files",
     "program files (x86)", "$recycle.bin", "system volume information",
     "onedrivetemp", "temp", ".cargo", ".rustup", ".npm", ".local", ".ollama",
     ".lmstudio", ".huggingface", "onedrive", "bin", "lib", "include", "packages",
@@ -322,8 +322,14 @@ def branch_list(path):
     """本地/远程分支 + 当前 + 合并状态 + 领先落后。"""
     rc, out, _ = git(path, "branch", "--format=%(refname:short)", timeout=15)
     locals_ = [l.strip() for l in out.splitlines() if l.strip()] if rc == 0 else []
-    rc2, out2, _ = git(path, "branch", "--format=%(refname:short)", "-r", timeout=15)
-    remotes = [l.strip() for l in out2.splitlines() if l.strip()] if rc2 == 0 else []
+    rc2, out2, _ = git(path, "branch", "--format=%(refname)", "-r", timeout=15)
+    remote_names = []
+    if rc2 == 0:
+        for l in out2.splitlines():
+            l = l.strip()
+            if not l or l.endswith("/HEAD"):
+                continue
+            remote_names.append(l[len("refs/remotes/"):] if l.startswith("refs/remotes/") else l)
     rc3, out3, _ = git(path, "branch", "--show-current", timeout=10)
     current = out3 if rc3 == 0 else ""
     rc4, out4, _ = git(path, "branch", "--merged", "--format=%(refname:short)", timeout=15)
@@ -341,8 +347,26 @@ def branch_list(path):
             if rc6 == 0 and out6:
                 parts = out6.split()
                 if len(parts) == 2:
-                    entry["behind"], entry["ahead"] = int(parts[0]), int(parts[1])
+                    entry["ahead"], entry["behind"] = int(parts[0]), int(parts[1])
         branches.append(entry)
+    local_names = set(locals_)
+    remotes = []
+    for name in remote_names:
+        if name.endswith("/HEAD"):
+            continue
+        entry = {"name": name, "ahead": 0, "behind": 0,
+                 "tracked": False, "local": ""}
+        local_name = name.split("/", 1)[-1] if "/" in name else name
+        if local_name in local_names:
+            entry["tracked"] = True
+            entry["local"] = local_name
+            rc6, out6, _ = git(path, "rev-list", "--left-right", "--count",
+                               local_name + "..." + name, timeout=15)
+            if rc6 == 0 and out6:
+                parts = out6.split()
+                if len(parts) == 2:
+                    entry["ahead"], entry["behind"] = int(parts[0]), int(parts[1])
+        remotes.append(entry)
     return {"branches": branches, "remotes": remotes, "current": current,
             "dirty": repo_brief(path)["dirty"]}
 
@@ -367,6 +391,27 @@ def create_branch(path, name, source=None):
     if rc != 0:
         raise RuntimeError("创建分支失败: %s" % (err or "未知错误"))
     return {"ok": True, "branch": name, "message": "已创建并切换到分支 %s" % name}
+
+
+def checkout_remote(path, name):
+    """把远程分支检出为同名本地分支并切换（自动跟踪上游）。"""
+    name = (name or "").strip()
+    if not name or name.startswith("-") or name.endswith("/HEAD"):
+        raise RuntimeError("远程分支无效")
+    if "/" not in name:
+        raise RuntimeError("远程分支无效")
+    info = repo_brief(path)
+    if info["dirty"] > 0:
+        raise RuntimeError("有 %d 个未提交变更，切换分支会覆盖工作区。请先提交或快照。" % info["dirty"])
+    local_name = name.split("/", 1)[-1]
+    existing = {b["name"] for b in branch_list(path)["branches"]}
+    if local_name in existing:
+        raise RuntimeError("本地分支 %s 已存在，可直接在本地分支列表中切换" % local_name)
+    rc, out, err = git(path, "switch", "-c", local_name, name, timeout=60)
+    if rc != 0:
+        raise RuntimeError("检出本地分支失败: %s" % (err or "未知错误"))
+    return {"ok": True, "branch": local_name,
+            "message": "已创建并切换到本地分支 %s（跟踪 %s）" % (local_name, name)}
 
 
 def switch_branch(path, name):
@@ -642,6 +687,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True, "config": load_config()})
         if path == "/api/repos":
             return self._local_repos()
+        if path == "/api/repos/overview":
+            return self._repos_overview()
         if path == "/api/gh/repos":
             return self._gh_repos()
         m = re.match(r"^/api/repo/([0-9a-fA-F]{12})/branches$", path)
@@ -735,6 +782,40 @@ class Handler(BaseHTTPRequestHandler):
         repos = [repo_brief(p) for p in find_repos(cfg["roots"])]
         return self.send_json({"ok": True, "repos": repos, "roots": cfg["roots"]})
 
+    def _repos_overview(self):
+        """分支总览：每个仓库的本地/远程分支、当前分支、领先落后、脏文件数。"""
+        cfg = load_config()
+
+        def build(path):
+            brief = repo_brief(path)
+            row = {"id": brief["id"], "path": path, "name": brief["name"],
+                   "remote": brief["remote"]}
+            try:
+                data = branch_list(path)
+                row.update({
+                    "current": data["current"] or "(无提交)",
+                    "dirty": data["dirty"],
+                    "branches": data["branches"],
+                    "remotes": data["remotes"],
+                    "ahead": 0, "behind": 0,
+                })
+                for b in data["branches"]:
+                    if b["current"]:
+                        row["ahead"], row["behind"] = b["ahead"], b["behind"]
+                        break
+            except Exception as exc:
+                row["error"] = str(exc)
+            return row
+
+        repos = find_repos(cfg["roots"])
+        if len(repos) <= 2:
+            rows = [build(p) for p in repos]
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(6, len(repos))) as pool:
+                rows = list(pool.map(build, repos))
+        return self.send_json({"ok": True, "repos": rows, "roots": cfg["roots"]})
+
     def _gh_repos(self):
         try:
             repos = gh_list_repos()
@@ -806,6 +887,8 @@ class Handler(BaseHTTPRequestHandler):
                                    body.get("source") or None)
             elif action == "switch":
                 result = with_lock(switch_branch, path, str(body.get("name") or ""))
+            elif action == "checkout_remote":
+                result = with_lock(checkout_remote, path, str(body.get("name") or ""))
             elif action == "merge":
                 result = with_lock(merge_branch, path, str(body.get("name") or ""))
             elif action == "abort_merge":

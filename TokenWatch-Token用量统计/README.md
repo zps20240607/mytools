@@ -1,6 +1,6 @@
 # TokenWatch — 跨工具 Token 用量自动统计
 
-自动扫描本机 AI 编程工具的会话记录，汇总 **Token 消耗** 与 **所用模型**，支持 Codex / Kimi Code / OpenClaw 三类工具。
+自动扫描本机 AI 编程工具的会话记录，汇总 **Token 消耗** 与 **所用模型**，支持 Codex / Kimi Code / OpenClaw / DeepSeek Harness（DSH）四类工具。
 
 ## 功能
 
@@ -18,6 +18,7 @@
 | Codex | `~/.codex/sessions/` + `archived_sessions/` | `token_count` 事件（input / cached / output / reasoning） |
 | Kimi Code | `~/.kimi-code/sessions/**/agents/main/wire.jsonl` | `usage.record` 事件（inputOther / inputCacheRead / inputCacheCreation / output） |
 | OpenClaw | `~/.openclaw/agents/main/sessions/*.jsonl` | assistant 消息上的 `usage` 对象（含 cost.total） |
+| DeepSeek Harness | ① `~/.dsh/storages/**/session_projcache.json`（优先，每会话汇总）② `~/.dsh/sessions/**/session.jsonl` 或 `session.jsonl.zstd`（无汇总时回退） | ① `tokenUsage.totals`（uncachedInputTokens / cacheReadTokens / cacheWriteTokens / outputTokens）② `assistant/message` 与 `assistant/chunk` 的 `usage` 事件。模型名一律从各会话日志的 `request/header`（`header.config.model`）提取，按 session uuid 回填到 projcache 汇总。需 `pip install zstandard` 才能读 .zstd 日志（缺失时自动退回系统 `zstd` 命令并记日志） |
 
 ## 使用（桌面版，推荐）
 

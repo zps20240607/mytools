@@ -270,6 +270,7 @@ async function refreshBranches() {
   try {
     const data = await api(`/api/repo/${currentBranchRepo.id}/branches`);
     const branches = data.branches || [];
+    const remotes = data.remotes || [];
     $("branchBody").innerHTML = branches.map((b) => {
       const status = b.current
         ? '<span class="badge gh">当前</span>'
@@ -289,6 +290,24 @@ async function refreshBranches() {
         </td>
       </tr>`;
     }).join("");
+    $("remoteBranchBody").innerHTML = remotes.length
+      ? remotes.map((b) => {
+          const status = b.tracked
+            ? (b.ahead || b.behind
+                ? '<span class="badge dirty">有差异</span>'
+                : '<span class="badge clean">已同步</span>')
+            : '<span class="badge">未跟踪</span>';
+          const ab = (b.ahead || b.behind) ? `${b.ahead}/${b.behind}` : "-";
+          return `
+      <tr>
+        <td class="branch">${esc(b.name)}</td>
+        <td>${status}</td>
+        <td class="num">${ab}</td>
+        <td class="branch">${esc(b.local || "-")}</td>
+        <td class="num"><button class="btn small" data-checkout="${esc(b.name)}">检出本地</button></td>
+      </tr>`;
+        }).join("")
+      : '<tr><td colspan="5" class="branch">该仓库没有远程分支（未配置远程）</td></tr>';
     bindBranch();
   } catch (e) {
     toast("读取分支失败: " + e.message, false);
@@ -301,6 +320,13 @@ function bindBranch() {
   });
   document.querySelectorAll("[data-merge]").forEach((btn) => {
     btn.addEventListener("click", () => branchAction("merge", { name: btn.dataset.merge }));
+  });
+  document.querySelectorAll("[data-checkout]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const name = btn.dataset.checkout;
+      if (!confirm(`把远程分支「${name}」检出为同名本地分支并切换？`)) return;
+      await branchAction("checkout_remote", { name });
+    });
   });
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -377,11 +403,74 @@ document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.add("active");
     const which = tab.dataset.tab;
     $("localView").hidden = which !== "local";
-    $("ghView").hidden = which !== "github";
+    $("overviewView").hidden = which !== "overview";
     if (which === "github") loadGh();
+    else if (which === "overview") loadOverview();
   });
 });
-$("refreshBtn").addEventListener("click", () => { loadLocal(); loadAccount(); });
+
+/* ---- 分支总览 ---- */
+
+let overviewRepos = [];
+
+async function loadOverview() {
+  const wrap = $("overviewBody");
+  const empty = $("overviewEmpty");
+  wrap.innerHTML = '<tr><td colspan="6" class="muted">正在扫描各仓库分支状态…</td></tr>';
+  try {
+    const data = await api("/api/repos/overview");
+    overviewRepos = data.repos || [];
+    empty.hidden = overviewRepos.length !== 0;
+    wrap.innerHTML = overviewRepos.map(renderOverviewRow).join("");
+    wrap.querySelectorAll("[data-switch]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const repoId = btn.dataset.switch;
+        const sel = document.getElementById("ovSel_" + repoId);
+        const name = sel.value;
+        if (!name) { toast("请选择分支", false); return; }
+        btn.disabled = true;
+        try {
+          await api("/api/repo/" + repoId + "/action", "POST", { action: "switch", name });
+          toast("已切换到 " + name);
+          loadOverview();
+        } catch (e) {
+          toast("切换失败: " + e.message, false);
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    empty.hidden = false;
+    empty.textContent = "加载失败: " + e.message;
+    wrap.innerHTML = "";
+  }
+}
+
+function renderOverviewRow(r) {
+  const locals = (r.branches || []).map((b) => b.name);
+  const remotes = (r.remotes || []).length;
+  const dirty = r.dirty || 0;
+  const ahead = r.ahead || 0, behind = r.behind || 0;
+  const av = ahead + "/" + behind;
+  const badge = ahead === 0 && behind === 0 ? "" : (ahead > 0 || behind > 0) ? ' class="num warn"' : "";
+  const options = locals
+    .filter((n) => n !== r.current)
+    .map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  const switcher = options
+    ? `<select id="ovSel_${esc(r.id)}">${options}</select> <button class="btn small" data-switch="${esc(r.id)}">切换</button>`
+    : '<span class="muted">仅一个分支</span>';
+  return `<tr>
+    <td><b>${esc(r.name)}</b><div class="muted small">${esc(r.path)}</div></td>
+    <td><span class="chip">${esc(r.current)}</span></td>
+    <td class="num${dirty ? " warn" : ""}">${dirty}</td>
+    <td class="num">${locals.length}/${remotes}</td>
+    <td class="num">${av}</td>
+    <td>${switcher}</td>
+  </tr>`;
+}
+
+loadOverview();
+  $("refreshBtn").addEventListener("click", () => { loadLocal(); loadOverview(); loadAccount(); });
 $("settingsBtn").addEventListener("click", openSettings);
 $("closeSettings").addEventListener("click", () => { $("modalSettings").hidden = true; });
 $("closePublish").addEventListener("click", () => { $("modalPublish").hidden = true; });

@@ -51,6 +51,7 @@ export function initWidgets() {
     else if (action === 'refresh' && window.__poll) window.__poll();
     else if (action === 'logs') openLogsCenter();
     else if (action === 'settings') openSettingsCenter();
+    else if (action === 'batch-start') batchStartApps();
     else if (action === 'batch-stop') batchStopApps();
   });
   /* 导航轨动作按钮（非视图切换） */
@@ -450,12 +451,39 @@ function batchStopApps() {
     okText: '全部停止',
     tone: 'danger',
     onOk: async () => {
-      let stopped = 0;
-      for (const app of running) {
-        const result = await act(post('/api/apps/' + app.id + '/stop', {}));
-        if (result && result.ok !== false) stopped += 1;
-      }
-      toast('已停止 ' + stopped + ' 个应用');
+      const result = await act(post('/api/apps/batch-stop', {}));
+      const results = (result && result.results) || [];
+      const stopped = results.filter(r => r.ok && !r.skipped).length;
+      const failed = results.filter(r => !r.ok).length;
+      toast('已停止 ' + stopped + ' 个应用' + (failed ? '，' + failed + ' 个失败' : ''));
+      if (window.__poll) window.__poll();
+    },
+  });
+}
+
+/* ============================================================
+   一键启动全部服务：确认后启动所有已停止的应用
+   ============================================================ */
+function batchStartApps() {
+  const apps = (state.data && state.data.apps) || [];
+  const stopped = apps.filter(a => !a.running);
+  if (!stopped.length) {
+    toast('当前没有已停止的应用');
+    return;
+  }
+  const names = stopped.map(a => a.name || '未命名').join('、');
+  openConfirm({
+    title: '一键启动全部',
+    bodyHtml: '确定要启动全部 <b>' + stopped.length + '</b> 个已停止的应用吗？' +
+      '<div class="confirm-detail">' + escapeHtml(names) + '</div>',
+    okText: '全部启动',
+    tone: 'primary',
+    onOk: async () => {
+      const result = await act(post('/api/apps/batch-start', {}));
+      const results = (result && result.results) || [];
+      const started = results.filter(r => r.ok && !r.skipped).length;
+      const failed = results.filter(r => !r.ok).length;
+      toast('已启动 ' + started + ' 个应用' + (failed ? '，' + failed + ' 个失败' : ''));
       if (window.__poll) window.__poll();
     },
   });

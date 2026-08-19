@@ -42,32 +42,45 @@ MAX_BODY = 1024 * 1024
 
 # 默认价格（USD / 百万 Token）：pattern, input, output, cached, cache_write, 名称
 DEFAULT_PRICE_RULES = [
-    ("gpt-5.6", 1.25, 10.00, 0.125, 1.25, "GPT-5.6 系列"),
-    ("gpt-5.5", 1.25, 10.00, 0.125, 1.25, "GPT-5.5 系列"),
-    ("gpt-5.2", 1.25, 10.00, 0.125, 1.25, "GPT-5.2 系列"),
-    ("gpt-5", 1.25, 10.00, 0.125, 1.25, "GPT-5 系列"),
-    ("o4-mini", 1.10, 4.40, 0.28, 1.10, "o4-mini"),
-    ("o3", 2.00, 8.00, 0.50, 2.00, "o3"),
-    ("gpt-4.1-mini", 0.40, 1.60, 0.10, 0.40, "GPT-4.1 mini"),
-    ("gpt-4.1", 2.00, 8.00, 0.50, 2.00, "GPT-4.1"),
-    ("gpt-4o-mini", 0.15, 0.60, 0.075, 0.15, "GPT-4o mini"),
-    ("gpt-4o", 2.50, 10.00, 1.25, 2.50, "GPT-4o"),
-    ("claude-opus", 15.00, 75.00, 1.50, 15.00, "Claude Opus"),
-    ("claude-sonnet", 3.00, 15.00, 0.30, 3.00, "Claude Sonnet"),
-    ("claude-haiku", 0.80, 4.00, 0.08, 0.80, "Claude Haiku"),
-    ("claude", 3.00, 15.00, 0.30, 3.00, "Claude"),
-    ("gemini-2.5-pro", 1.25, 10.00, 0.31, 1.25, "Gemini 2.5 Pro"),
-    ("gemini", 0.30, 2.50, 0.075, 0.30, "Gemini Flash"),
-    ("deepseek-reasoner", 0.55, 2.19, 0.14, 0.55, "DeepSeek R1"),
-    ("deepseek-chat", 0.27, 1.10, 0.07, 0.27, "DeepSeek V3"),
-    ("deepseek", 0.27, 1.10, 0.07, 0.27, "DeepSeek"),
-    ("kimi-k2", 0.60, 2.50, 0.15, 0.60, "Kimi K2"),
-    ("kimi", 2.00, 8.00, 0.50, 2.00, "Kimi"),
-    ("moonshot", 2.00, 8.00, 0.50, 2.00, "Moonshot"),
-    ("glm", 0.50, 0.50, 0.05, 0.50, "GLM"),
-    ("qwen", 0.20, 0.80, 0.02, 0.20, "Qwen"),
-    ("codestral", 0.30, 0.90, 0.03, 0.30, "Codestral"),
-    ("openclaw", 0.50, 2.00, 0.10, 0.50, "OpenClaw 默认"),
+    # 默认价格（USD / 百万 Token）：pattern, input, output, cached, cache_write, 名称, 币种
+    # 币种为 cny 时按价格表 rate.cny_per_usd 汇率折算成 USD 展示
+    ("gpt-5.6", 1.25, 10.00, 0.125, 1.25, "GPT-5.6 系列", "usd"),
+    ("gpt-5.5", 1.25, 10.00, 0.125, 1.25, "GPT-5.5 系列", "usd"),
+    ("gpt-5.2", 1.25, 10.00, 0.125, 1.25, "GPT-5.2 系列", "usd"),
+    ("gpt-5", 1.25, 10.00, 0.125, 1.25, "GPT-5 系列", "usd"),
+    ("o4-mini", 1.10, 4.40, 0.28, 1.10, "o4-mini", "usd"),
+    ("o3", 2.00, 8.00, 0.50, 2.00, "o3", "usd"),
+    ("gpt-4.1-mini", 0.40, 1.60, 0.10, 0.40, "GPT-4.1 mini", "usd"),
+    ("gpt-4.1", 2.00, 8.00, 0.50, 2.00, "GPT-4.1", "usd"),
+    ("gpt-4o-mini", 0.15, 0.60, 0.075, 0.15, "GPT-4o mini", "usd"),
+    ("gpt-4o", 2.50, 10.00, 1.25, 2.50, "GPT-4o", "usd"),
+    ("claude-opus", 15.00, 75.00, 1.50, 15.00, "Claude Opus", "usd"),
+    ("claude-sonnet", 3.00, 15.00, 0.30, 3.00, "Claude Sonnet", "usd"),
+    ("claude-haiku", 0.80, 4.00, 0.08, 0.80, "Claude Haiku", "usd"),
+    ("claude", 3.00, 15.00, 0.30, 3.00, "Claude", "usd"),
+    ("gemini-2.5-pro", 1.25, 10.00, 0.31, 1.25, "Gemini 2.5 Pro", "usd"),
+    ("gemini", 0.30, 2.50, 0.075, 0.30, "Gemini Flash", "usd"),
+    ("deepseek-v4-pro", 0.435, 0.87, 0.0435, 0.0, "DeepSeek V4 Pro", "usd"),
+    ("deepseek-v4-flash", 0.14, 0.28, 0.014, 0.0, "DeepSeek V4 Flash", "usd"),
+    ("deepseek-reasoner", 0.55, 2.19, 0.14, 0.55, "DeepSeek R1", "usd"),
+    ("deepseek-chat", 0.28, 0.42, 0.028, 0.0, "DeepSeek V3.2", "usd"),
+    ("deepseek", 0.14, 0.28, 0.014, 0.0, "DeepSeek 通用（按 V4 Flash）", "usd"),
+    ("kimi-code/k3", 20.0, 100.0, 2.0, 0.0, "Kimi K3（¥20/¥100 按汇率折算）", "cny"),
+    ("kimi-k3", 20.0, 100.0, 2.0, 0.0, "Kimi K3", "cny"),
+    ("kimi-code/kimi-for-coding", 6.5, 27.0, 1.3, 0.0, "Kimi K2.7 Code（¥6.5/¥27 按汇率折算）", "cny"),
+    ("kimi-k2.7-code-highspeed", 13.0, 54.0, 2.6, 0.0, "Kimi K2.7 Code HighSpeed", "cny"),
+    ("kimi-k2.7-code", 6.5, 27.0, 1.3, 0.0, "Kimi K2.7 Code", "cny"),
+    ("kimi-k2", 0.60, 2.50, 0.15, 0.60, "Kimi K2/K2.6", "usd"),
+    ("kimi", 20.0, 100.0, 2.0, 0.0, "Kimi 通用（按 K3）", "cny"),
+    ("moonshot", 20.0, 100.0, 2.0, 0.0, "Moonshot 通用（按 K3）", "cny"),
+    ("glm-5.2", 1.40, 4.40, 0.26, 0.0, "GLM-5.2", "usd"),
+    ("glm-5.1", 1.40, 4.40, 0.26, 0.0, "GLM-5.1", "usd"),
+    ("glm-5-turbo", 1.20, 4.00, 0.24, 0.0, "GLM-5-Turbo", "usd"),
+    ("glm-5", 1.00, 3.20, 0.20, 0.0, "GLM-5", "usd"),
+    ("glm", 0.60, 2.20, 0.11, 0.0, "GLM-4.7 及以上", "usd"),
+    ("qwen", 0.20, 0.80, 0.02, 0.20, "Qwen", "usd"),
+    ("codestral", 0.30, 0.90, 0.03, 0.30, "Codestral", "usd"),
+    ("openclaw", 0.50, 2.00, 0.10, 0.50, "OpenClaw 默认", "usd"),
 ]
 DEFAULT_FALLBACK = {"input": 0.50, "output": 2.00, "cached": 0.10, "cache_write": 0.50}
 
@@ -85,11 +98,15 @@ def setup_logging():
 
 # ---------------------------------------------------------------- 价格表
 
+DEFAULT_RATE = {"cny_per_usd": 7.2}
+
+
 def default_prices():
     rules = [{"pattern": p, "input": i, "output": o, "cached": c,
-              "cache_write": cw, "name": n}
-             for p, i, o, c, cw, n in DEFAULT_PRICE_RULES]
-    return {"rules": rules, "fallback": dict(DEFAULT_FALLBACK)}
+              "cache_write": cw, "name": n, "currency": cur}
+             for p, i, o, c, cw, n, cur in DEFAULT_PRICE_RULES]
+    return {"rules": rules, "fallback": dict(DEFAULT_FALLBACK),
+            "rate": dict(DEFAULT_RATE)}
 
 
 def load_prices():
@@ -102,14 +119,19 @@ def load_prices():
                 clean = []
                 for r in data["rules"]:
                     if isinstance(r, dict) and str(r.get("pattern", "")).strip():
-                        clean.append({
+                        entry = {
                             "pattern": str(r["pattern"]).strip().lower(),
                             "input": _to_float(r.get("input", 0)),
                             "output": _to_float(r.get("output", 0)),
                             "cached": _to_float(r.get("cached", 0)),
                             "cache_write": _to_float(r.get("cache_write", 0)),
                             "name": str(r.get("name") or r["pattern"]),
-                        })
+                        }
+                        if r.get("currency"):
+                            entry["currency"] = str(r["currency"]).lower()
+                        else:
+                            _migrate_legacy_rule(entry)
+                        clean.append(entry)
                 clean = [r for r in clean if not any(r[k] is None for k in _PRICE_KEYS)]
                 clean.sort(key=lambda r: len(r["pattern"]), reverse=True)
                 prices["rules"] = clean
@@ -119,9 +141,28 @@ def load_prices():
                         prices["fallback"][k] = float(data["fallback"].get(k) or 0)
                     except (TypeError, ValueError):
                         pass
+            rate = _to_float((data.get("rate") or {}).get("cny_per_usd"))
+            if rate and rate > 0:
+                prices["rate"]["cny_per_usd"] = rate
     except (OSError, ValueError):
         pass
+    _inject_rate(prices)
     return prices
+
+
+def _inject_rate(prices):
+    """给每条规则注入当前汇率折算因子，cny 规则计算时自动按汇率换算。"""
+    cny_per_usd = _to_float((prices.get("rate") or {}).get("cny_per_usd"))
+    if not cny_per_usd or cny_per_usd <= 0:
+        cny_per_usd = DEFAULT_RATE["cny_per_usd"]
+        prices.setdefault("rate", {})["cny_per_usd"] = cny_per_usd
+    usd_per_cny = 1.0 / cny_per_usd
+    for rule in prices.get("rules") or []:
+        if str(rule.get("currency") or "usd").lower() == "cny":
+            rule["usd_per_cny"] = usd_per_cny
+        else:
+            rule["currency"] = "usd"
+            rule["usd_per_cny"] = 1.0
 
 
 def save_prices(prices):
@@ -140,23 +181,60 @@ def _to_float(v):
 
 _PRICE_KEYS = tuple('input output cached cache_write'.split())
 
+# 旧版价格表（1.x）把 Kimi 等 ¥ 计价规则按 7.2 折算存成 USD；升级后
+# 改为存 RMB 原价 + currency="cny"，改汇率时自动重新折算。
+LEGACY_RATE = 7.2
+LEGACY_CNY = {
+    "kimi-code/k3": (20.0, 100.0, 2.0, 0.0),
+    "kimi-k3": (20.0, 100.0, 2.0, 0.0),
+    "kimi-code/kimi-for-coding": (6.5, 27.0, 1.3, 0.0),
+    "kimi-k2.7-code-highspeed": (13.0, 54.0, 2.6, 0.0),
+    "kimi-k2.7-code": (6.5, 27.0, 1.3, 0.0),
+    "kimi-k2": (4.4, 18.0, 1.1, 4.3),
+    "kimi": (20.0, 100.0, 2.0, 0.0),
+    "moonshot": (20.0, 100.0, 2.0, 0.0),
+}
+
+
+def _migrate_legacy_rule(rule):
+    """旧格式规则（无 currency 字段）迁移：Kimi 系列按 7.2 乘回 RMB 原价。"""
+    legacy = LEGACY_CNY.get(rule["pattern"])
+    if legacy is not None:
+        # 仅当值与旧默认折算价一致时才迁移，避免覆盖用户自定义价
+        if (abs(rule["input"] - round(legacy[0] / LEGACY_RATE, 4)) < 0.02
+                and abs(rule["output"] - round(legacy[1] / LEGACY_RATE, 4)) < 0.02):
+            rule["input"], rule["output"] = legacy[0], legacy[1]
+            rule["cached"], rule["cache_write"] = legacy[2], legacy[3]
+            rule["currency"] = "cny"
+            return True
+    rule["currency"] = "usd"
+    return False
+
 def match_price(model, prices):
     lower = (model or "").lower()
     for rule in prices["rules"]:
         if rule["pattern"] in lower:
             return rule
-    return {"pattern": "", "name": "默认价格（未匹配）", **prices["fallback"]}
+    return {"pattern": "", "name": "默认价格（未匹配）", **prices["fallback"],
+            "currency": "usd", "usd_per_cny": 1.0}
 
 
 def compute_cost(input_t, output_t, cached_t, cache_write_t, reasoning_t, price):
-    """按百万 Token 单价折算 USD。reasoning 按输出价计。"""
+    """按百万 Token 单价折算 USD。
+
+    口径说明：TokenWatch 入库时 input = 未命中 + 缓存读 + 缓存写（三部分合并），
+    因此输入价只对「未命中部分」收，缓存读/写按各自单价收，避免双重计费；
+    reasoning 已包含在 output 内（OpenAI 系 usage 口径），不另计价。
+    """
+    uncached = max(input_t - cached_t - cache_write_t, 0)
     usd = (
-        input_t * float(price["input"])
+        uncached * float(price["input"])
         + output_t * float(price["output"])
         + cached_t * float(price["cached"])
         + cache_write_t * float(price["cache_write"])
-        + reasoning_t * float(price["output"])
     ) / 1_000_000.0
+    if str(price.get("currency") or "usd").lower() == "cny":
+        usd *= float(price.get("usd_per_cny") or (1.0 / DEFAULT_RATE["cny_per_usd"]))
     return usd
 
 
@@ -404,6 +482,7 @@ class Handler(BaseHTTPRequestHandler):
                         "cached": float(r.get("cached", 0) or 0),
                         "cache_write": float(r.get("cache_write", 0) or 0),
                         "name": str(r.get("name") or r["pattern"]),
+                        "currency": str(r.get("currency") or "usd").lower(),
                     })
                 rules.sort(key=lambda r: len(r["pattern"]), reverse=True)
                 fb = dict(DEFAULT_FALLBACK)
@@ -412,7 +491,11 @@ class Handler(BaseHTTPRequestHandler):
                         fb[k] = float(prices.get("fallback", {}).get(k) or 0)
                     except (TypeError, ValueError):
                         pass
-                save_prices({"rules": rules, "fallback": fb})
+                rate = _to_float((prices.get("rate") or {}).get("cny_per_usd"))
+                if not rate or rate <= 0:
+                    rate = DEFAULT_RATE["cny_per_usd"]
+                save_prices({"rules": rules, "fallback": fb,
+                             "rate": {"cny_per_usd": rate}})
                 return self.send_json({"ok": True, "prices": load_prices()})
             except (KeyError, TypeError, ValueError) as exc:
                 return self.send_json({"ok": False, "error": "价格表格式错误: %s" % exc}, 400)

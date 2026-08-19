@@ -19,6 +19,7 @@
     </select>
     <button id="refresh" class="btn">⟳ 刷新</button>
     <button id="pricesBtn" class="btn primary">价格表</button>
+    <button id="themeBtn" class="btn" title="主题切换">🌓</button>
   </div>
 </header>
 <main>
@@ -42,6 +43,7 @@
     <h3>未匹配价格表的模型</h3>
     <table><thead><tr><th>模型</th><th class="num">Token</th><th class="num">记录数</th></tr></thead>
     <tbody id="unknownList"></tbody></table>
+    <p class="hint" id="unknownCount"></p>
     <p class="hint">在「价格表」中补充规则后，估算会更准确。</p>
   </section>
 </main>
@@ -50,7 +52,7 @@
 <div id="modalPrices" class="modal" hidden>
   <div class="modal-box">
     <h3>模型价格表（USD / 百万 Token）</h3>
-    <p class="hint">rules 按 pattern 最长优先匹配模型名；fallback 用于未匹配模型。input=输入、output=输出、cached=缓存读取、cache_write=缓存写入。reasoning 按 output 单价计。</p>
+    <p class="hint">rules 按 pattern 最长优先匹配模型名；fallback 用于未匹配模型；rate.cny_per_usd 为 CNY→USD 汇率（currency 为 cny 的规则按此折算）。input=输入、output=输出、cached=缓存读取、cache_write=缓存写入、reasoning 按 output 单价计。</p>
     <textarea id="pricesText" spellcheck="false"></textarea>
     <div class="row end">
       <button id="resetPrices" class="btn ghost">恢复默认</button>
@@ -61,6 +63,7 @@
 </div>
 
 <div id="toast" class="toast" hidden></div>
+<script src="/static/theme.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

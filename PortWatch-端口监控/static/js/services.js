@@ -610,10 +610,21 @@ export function renderServices(d, firstRender) {
   }
   /* 全局概览：我的服务负载合计 + 启动台端口警告数 */
   let cpuSum = 0, memSum = 0;
-  for (const s of mine) { cpuSum += s.cpu || 0; memSum += s.mem || 0; }
-  setKpiUnit(statCpu, cpuSum.toFixed(1), '%');
+  if (typeof d.cpuPct === 'number') {
+    cpuSum = d.cpuPct; memSum = d.memPct;
+  } else {
+    const seenPids = new Set();
+    for (const s of mine) {
+      if (seenPids.has(s.pid)) continue;
+      seenPids.add(s.pid);
+      cpuSum += s.cpu || 0; memSum += s.mem || 0;
+    }
+  }
+  const cpuCores = (typeof d.cpuCores === 'number' && d.cpuCores > 0) ? d.cpuCores : 1;
+  const cpuAvg = typeof d.cpuAvgPct === 'number' ? d.cpuAvgPct : (cpuSum / cpuCores);
+  setKpiUnit(statCpu, cpuAvg.toFixed(1), '%');
   setKpiUnit(statMem, memSum.toFixed(1), '%');
-  cpuHistory.push(cpuSum);
+  cpuHistory.push(cpuAvg);
   memHistory.push(memSum);
   if (cpuHistory.length > SPARK_CAP) cpuHistory.shift();
   if (memHistory.length > SPARK_CAP) memHistory.shift();

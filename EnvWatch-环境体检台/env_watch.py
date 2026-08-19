@@ -289,7 +289,7 @@ def system_overview():
 
 def build_html(tools, checks, path_info, overview):
     level_names = {"ok": "正常", "warn": "警告", "error": "问题", "info": "建议"}
-    level_colors = {"ok": "#37c26a", "warn": "#f5a623", "error": "#ff5c5c", "info": "#5b8cff"}
+    level_colors = {"ok": "#5f7351", "warn": "#b78b3d", "error": "#a33b2c", "info": "#4a5d68"}
 
     check_html = "".join(
         '<li class="check %s"><b>%s</b> %s<div class="detail">%s</div></li>' % (
@@ -342,36 +342,62 @@ def build_html(tools, checks, path_info, overview):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EnvWatch · 环境体检报告</title>
 <style>
-:root { --bg:#0b0e14; --panel:#11151f; --panel2:#161c2b; --border:#1e2636;
-  --text:#dbe4f0; --muted:#8b96ab; --ok:#37c26a; --warn:#f5a623; --err:#ff5c5c; --info:#5b8cff; }
+:root { --bg:#f4ecdc; --panel:#ede3cf; --panel2:#e6d9c0;
+  --border:rgba(43,36,25,0.18); --dash:rgba(43,36,25,0.14);
+  --text:#2b2419; --muted:#5d5343; --cinnabar:#a33b2c; --gold:#b78b3d;
+  --ok:#5f7351; --warn:#b78b3d; --err:#a33b2c; --info:#4a5d68;
+  --shadow:0 10px 30px rgba(43,36,25,0.08);
+  --serif:'Noto Serif SC','Source Han Serif SC','STSong','SimSun',serif;
+  --kai:'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif; }
 * { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--text); font:14px/1.7 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; }
+body { margin:0; background:var(--bg); color:var(--text); font:14px/1.7 var(--serif);
+  background-image:
+    radial-gradient(600px 200px at 20%% -40px, rgba(43,36,25,0.05), transparent 70%%),
+    radial-gradient(rgba(120,100,60,0.06) 1px, transparent 1.5px),
+    radial-gradient(rgba(120,100,60,0.05) 1px, transparent 1.5px);
+  background-size:auto, 20px 20px, 20px 20px;
+  background-position:0 0, 0 0, 10px 10px;
+  background-repeat:no-repeat, repeat, repeat; }
 .wrap { max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
-h1 { font-size:22px; margin:0 0 4px; } h1 small { color:var(--muted); font-size:13px; font-weight:400; }
-h3 { margin:26px 0 10px; font-size:16px; border-left:3px solid var(--info); padding-left:10px; }
+h1 { font-family:var(--kai); font-size:24px; letter-spacing:6px; margin:0 0 4px; }
+h1 small { color:var(--muted); font-size:13px; font-weight:400; letter-spacing:1px; font-family:var(--serif); }
+.seal { display:inline-block; margin-left:12px; padding:3px 7px; border:3px solid var(--cinnabar);
+  box-shadow:inset 0 0 0 1px var(--cinnabar); color:var(--cinnabar);
+  font-family:var(--kai); font-size:14px; line-height:1.1; letter-spacing:2px; vertical-align:6px; }
+.rule { position:relative; height:1px; margin:14px 0 4px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+.rule::after { content:"◆"; position:absolute; left:50%%; top:50%%; transform:translate(-50%%,-50%%);
+  color:var(--gold); background:var(--bg); padding:0 8px; font-size:10px; }
+h3 { margin:26px 0 10px; font-size:16px; font-family:var(--kai); letter-spacing:3px;
+  border-left:3px solid var(--cinnabar); padding-left:10px; }
 .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:18px 0; }
-.card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
-.card b { display:block; font-size:18px; } .card span { color:var(--muted); font-size:12px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:5px; padding:10px 14px;
+  box-shadow:var(--shadow); transition:transform .15s ease; }
+.card:hover { transform:translateY(-2px); }
+.card b { display:block; font-size:18px; font-family:var(--kai); color:var(--cinnabar); letter-spacing:1px; }
+.card span { color:var(--muted); font-size:12px; }
 .summary { display:flex; gap:10px; flex-wrap:wrap; }
 .pill { border-radius:999px; padding:3px 12px; font-size:12px; border:1px solid var(--border); background:var(--panel2); }
 .pill.ok { color:var(--ok); } .pill.warn { color:var(--warn); } .pill.err { color:var(--err); }
 ul.check { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
-li.check { background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--info); border-radius:8px; padding:8px 12px; }
+li.check { background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--info); border-radius:5px; padding:8px 12px; }
 li.check.ok { border-left-color:var(--ok); } li.check.warn { border-left-color:var(--warn); }
 li.check.error { border-left-color:var(--err); }
 li.check b { margin-right:6px; font-size:12px; }
 li.check.ok b { color:var(--ok); } li.check.warn b { color:var(--warn); } li.check.error b { color:var(--err); }
+li.check.info b { color:var(--info); }
 li.check .detail { color:var(--muted); font-size:12px; margin-top:2px; word-break:break-all; }
-table { width:100%%; border-collapse:collapse; background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--border); font-size:13px; }
+table { width:100%%; border-collapse:collapse; background:var(--panel); border:1px solid var(--border); border-radius:5px; overflow:hidden; box-shadow:var(--shadow); }
+th, td { text-align:left; padding:6px 10px; border-bottom:1px dashed var(--dash); font-size:13px; }
 th { color:var(--muted); font-weight:500; background:var(--panel2); }
 td.ok { color:var(--ok); } td.miss { color:var(--muted); } td.err { color:var(--err); }
 td.ver, td.path { font-family:Consolas,monospace; font-size:12px; color:var(--muted); word-break:break-all; }
-.pitem { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:8px; }
+.pitem { background:var(--panel); border:1px solid var(--border); border-radius:5px; padding:10px 14px; margin-bottom:8px; box-shadow:var(--shadow); }
 .pitem ul { margin:4px 0 0; padding-left:20px; font-family:Consolas,monospace; font-size:12px; color:var(--muted); word-break:break-all; }
-footer { margin-top:30px; color:var(--muted); font-size:12px; }
+footer { margin-top:30px; padding-top:12px; border-top:1px dashed var(--dash); color:var(--muted); font-size:12px; }
 </style></head><body><div class="wrap">
-<h1>EnvWatch <small>环境体检报告 · %s</small></h1>
+<h1>EnvWatch <small>环境体检报告 · %s</small><span class="seal">体检</span></h1>
+<div class="rule"></div>
 <div class="cards">
   <div class="card"><b>%s</b><span>操作系统</span></div>
   <div class="card"><b>%s</b><span>CPU 核心</span></div>

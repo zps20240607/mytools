@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日清单 · 桌面驻留</title>
+<!--
+  每日清单 · 桌面驻留工具
+  ============================================
+  单页 HTML 应用，开箱即用。
+  - 水墨国潮风半透宣纸卡片（保留轻毛玻璃悬浮手感），常驻屏幕右下角
+  - 标题栏拖拽移动 / 一键复位
+  - 本地持久化（localStorage，键名 daily_todo_list_data）
+  - 亮/暗自动适配（prefers-color-scheme）
+  - 纯 HTML + CSS + JS（ES6），无第三方依赖
+-->
+<style>
+  /* ========== 全局与主题变量 ========== */
+  :root {
+    /* 亮色模式（宣纸） */
+    --card-bg: rgba(244, 236, 220, 0.82);
+    --card-border: rgba(43, 36, 25, 0.18);
+    --text-main: #2b2419;
+    --text-sub: #5d5343;
+    --accent: #a33b2c;
+    --accent-soft: rgba(163, 59, 44, 0.14);
+    --row-hover: rgba(43, 36, 25, 0.05);
+    --danger: #a33b2c;
+    --gold: #b78b3d;
+    --shadow: 0 18px 50px rgba(43, 36, 25, 0.22),
+              0 2px 8px rgba(43, 36, 25, 0.12);
+    --blur: 18px;
+    --saturate: 1.1;
+  }
+
+  /* 暗色模式：跟随系统偏好 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --card-bg: rgba(38, 33, 26, 0.78);
+      --card-border: rgba(230, 218, 192, 0.14);
+      --text-main: #e6dac0;
+      --text-sub: #a89a80;
+      --accent: #c8543f;
+      --accent-soft: rgba(200, 84, 63, 0.18);
+      --row-hover: rgba(230, 218, 192, 0.06);
+      --danger: #c8543f;
+      --gold: #c9a35c;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.5),
+                0 2px 8px rgba(0, 0, 0, 0.3);
+      --blur: 20px;
+      --saturate: 1.05;
+    }
+  }
+
+  /* ========== 基础重置 ========== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+    /* 主体不参与布局，卡片固定于角落后可拖拽 */
+    min-height: 100vh;
+    color: var(--text-main);
+    /* 兜底背景：宣纸米色 + 噪点，仅当页面无其它内容时可见 */
+    background: #f4ecdc;
+    background-image:
+      radial-gradient(rgba(120, 100, 60, 0.06) 1px, transparent 1.5px),
+      radial-gradient(rgba(120, 100, 60, 0.05) 1px, transparent 1.5px);
+    background-size: 20px 20px, 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    body {
+      background: #1c1813;
+      background-image:
+        radial-gradient(rgba(230, 218, 192, 0.045) 1px, transparent 1.5px),
+        radial-gradient(rgba(230, 218, 192, 0.04) 1px, transparent 1.5px);
+    }
+  }
+
+  /* ========== 卡片容器 ========== */
+  #card {
+    position: fixed;
+    /* 默认位置：右下角，距边缘 20px */
+    right: 20px;
+    bottom: 20px;
+    width: 340px;
+    max-width: calc(100vw - 40px);
+    z-index: 2147483000;
+    /* 毛玻璃核心：半透明背景 + 模糊 + 微饱和 */
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    box-shadow: var(--shadow),
+                inset 0 1px 0 rgba(255, 252, 240, 0.28);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: min(78vh, 620px);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+
+  /* 拖拽中的手感增强 */
+  #card.dragging {
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: scale(1.015);
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  /* ========== 标题栏（可拖拽区域） ========== */
+  #titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px 10px;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #titlebar:active { cursor: grabbing; }
+
+  #titlebar .dot {
+    /* 朱砂印章小方块 */
+    width: 22px; height: 22px; border-radius: 3px;
+    background: transparent;
+    border: 2px solid var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    color: var(--accent);
+    font-family: "ZCOOL XiaoWei", "Ma Shan Zheng", "STKaiti", "KaiTi", "STSong", serif;
+    font-size: 13px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #titlebar .dot::after { content: "单"; letter-spacing: 0; }
+  #titlebar h1 {
+    font-family: "ZCOOL XiaoWei", "Ma Shan Zheng", "STKaiti", "KaiTi", "STSong", serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 复位按钮 */
+  #reset-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 15px;
+    line-height: 1;
+    padding: 5px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+  #reset-btn:hover { background: var(--row-hover); color: var(--text-main); }
+  #reset-btn:active { transform: rotate(-40deg); }
+  #reset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ========== 日期 ========== */
+  #date-line {
+    padding: 0 18px 10px;
+    font-size: 12.5px;
+    color: var(--text-sub);
+    font-weight: 500;
+  }
+
+  /* ========== 输入区 ========== */
+  #input-row {
+    display: flex;
+    gap: 8px;
+    padding: 4px 16px 12px;
+  }
+  #input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--card-border);
+    background: rgba(255, 252, 240, 0.5);
+    color: var(--text-main);
+    border-radius: 5px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    #input { background: rgba(230, 218, 192, 0.07); }
+  }
+  #input::placeholder { color: var(--text-sub); opacity: 0.8; }
+  #input:focus { border-color: var(--accent); background: rgba(255, 252, 240, 0.65); }
+  @media (prefers-color-scheme: dark) {
+    #input:focus { background: rgba(230, 218, 192, 0.1); }
+  }
+
+  #add-btn {
+    border: none;
+    background: var(--accent);
+    color: #f4ecdc;
+    font-size: 16px;
+    line-height: 1;
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.12s ease, filter 0.15s ease;
+    box-shadow: 0 4px 12px var(--accent-soft);
+  }
+  #add-btn:hover { filter: brightness(1.06); }
+  #add-btn:active { transform: scale(0.92); }
+  #add-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ========== 任务列表 ========== */
+  #list {
+    flex: 1 1 auto;
+    min-height: 60px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 2px 12px 4px;
+    list-style: none;
+    overscroll-behavior: contain;
+  }
+  /* 列表滚动条美化 */
+  #list::-webkit-scrollbar { width: 6px; }
+  #list::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.35);
+    border-radius: 6px;
+  }
+  #list::-webkit-scrollbar-track { background: transparent; }
+
+  /* 任务项 */
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 9px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+    animation: itemIn 0.22s ease both;
+  }
+  .todo-item:hover { background: var(--row-hover); }
+
+  /* 圆形复选框 */
+  .checkbox {
+    flex-shrink: 0;
+    width: 19px; height: 19px;
+    border-radius: 50%;
+    border: 2px solid var(--text-sub);
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease, background 0.2s ease, transform 0.12s ease;
+    display: inline-block;
+  }
+  .checkbox:hover { border-color: var(--accent); transform: scale(1.08); }
+  .checkbox::after {
+    content: "";
+    position: absolute;
+    left: 4.5px; top: 1.5px;
+    width: 6px; height: 10px;
+    border: solid #f4ecdc;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 0.18s ease;
+  }
+
+  /* 关闭按钮（标题栏） */
+  #close-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 16px;
+    line-height: 1;
+    padding: 5px 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+  #close-btn:hover { background: var(--row-hover); color: var(--danger); }
+  #close-btn:active { transform: scale(0.9); }
+  #close-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ========== 任务列表 ========== */
+
+  .todo-item.completed .checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .todo-item.completed .checkbox::after { transform: rotate(45deg) scale(1); }
+
+  /* 任务文字 */
+  .todo-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 13.5px;
+    line-height: 1.35;
+    word-break: break-word;
+    transition: color 0.2s ease;
+  }
+  .todo-item.completed .todo-text {
+    color: var(--text-sub);
+    text-decoration: line-through;
+    text-decoration-color: var(--text-sub);
+  }
+
+  /* 删除按钮：默认隐藏，悬停显示 */
+  .delete-btn {
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 15px;
+    line-height: 1;
+    padding: 4px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease,
+                background 0.15s ease, color 0.15s ease;
+  }
+  .todo-item:hover .delete-btn,
+  .delete-btn:focus-visible { opacity: 1; transform: translateX(0); }
+  .delete-btn:hover { background: var(--row-hover); color: var(--danger); }
+
+  /* 删除 / 退出动画 */
+  @keyframes itemIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes itemOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(16px) scale(0.95); }
+  }
+  .todo-item.removing { animation: itemOut 0.22s ease forwards; }
+
+  /* 空状态占位 */
+  #empty {
+    display: none;
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 13px; 
+    line-height: 1.6;
+  }
+  #list:empty ~ #empty, #list.is-empty + #empty { display: block; }
+
+  /* ========== 底部统计 ========== */
+  #footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px 14px;
+    border-top: 1px solid var(--card-border);
+    font-size: 12.5px;
+    color: var(--text-sub);
+    position: relative;
+  }
+  #footer::before {
+    content: ""; position: absolute; left: 12px; right: 12px; top: -1px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  #count { font-weight: 600; color: var(--text-main); }
+  #clear-done {
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  #clear-done:hover { background: var(--row-hover); color: var(--danger); }
+  #clear-done:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <!-- ======= 卡片 ======= -->
+  <div id="card">
+    <div id="titlebar">
+      <span class="dot"></span>
+      <h1>每日清单</h1>
+      <button id="close-btn" title="关闭" aria-label="关闭">✕</button>
+      <button id="reset-btn" title="复位到右下角" aria-label="复位到右下角">⟳</button>
+    </div>
+
+    <div id="date-line"></div>
+
+    <div id="input-row">
+      <input id="input" type="text" placeholder="添加新任务，回车提交…" autocomplete="off">
+      <button id="add-btn" title="添加任务" aria-label="添加任务">＋</button>
+    </div>
+
+    <ul id="list"></ul>
+    <div id="empty">✨ 今天没有待办，休息一下吧</div>
+
+    <div id="footer">
+      <span>剩余 <span id="count">0</span> 项</span>
+      <button id="clear-done">清除已完成</button>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ============================================================
+       常量与状态
+       ============================================================ */
+    const STORAGE_KEY = "daily_todo_list_data"; // 本地存储键名
+
+    const card      = document.getElementById("card");
+    const titlebar  = document.getElementById("titlebar");
+    const resetBtn  = document.getElementById("reset-btn");
+    const dateLine  = document.getElementById("date-line");
+    const input     = document.getElementById("input");
+    const addBtn    = document.getElementById("add-btn");
+    const listEl    = document.getElementById("list");
+    const countEl   = document.getElementById("count");
+    const clearBtn  = document.getElementById("clear-done");
+
+    /* 默认位置（右下角，距边缘 20px） */
+    const DEFAULT_RIGHT = 20;
+    const DEFAULT_BOTTOM = 20;
+
+    // 数据模型: { id: string, text: string, completed: boolean, createdAt: number }
+    let todos = [];
+
+    /* ============================================================
+       数据读写（localStorage 持久化）
+       ============================================================ */
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      } catch (e) {
+        // 存储不可用时静默降级为内存态
+        console.warn("保存失败：", e);
+      }
+    }
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : [];
+        // 容错：仅保留合法结构的数据
+        todos = Array.isArray(data) ? data.filter(t =>
+          t && typeof t.id === "string" && typeof t.text === "string"
+        ) : [];
+      } catch (e) {
+        todos = [];
+      }
+    }
+
+    function uid() {
+      // 简单唯一 ID
+      return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+
+    /* ============================================================
+       日期显示：2026年08月19日 · 星期三
+       ============================================================ */
+    const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+    function formatDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const w = WEEKDAYS[d.getDay()];
+      return `${y}年${m}月${day}日 · ${w}`;
+    }
+
+    function renderDate() {
+      dateLine.textContent = formatDate(new Date());
+    }
+
+    /* 跨午夜的日期自动更新（每日轮询，轻量） */
+    function scheduleDateTick() {
+      const now = new Date();
+      const msUntilMidnight =
+        new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+      setTimeout(() => {
+        renderDate();
+        scheduleDateTick();
+      }, msUntilMidnight + 1000); // 稍晚 1s 确保已过午夜
+    }
+
+    /* ============================================================
+       渲染
+       ============================================================ */
+    function render() {
+      listEl.innerHTML = "";
+
+      // 事件委托：统一给列表挂监听，减少内存占用
+      todos.forEach((todo, index) => {
+        const li = document.createElement("li");
+        li.className = "todo-item" + (todo.completed ? " completed" : "");
+        li.dataset.index = String(index);
+        // 注意：实际渲染时 unshift 新的在上面，见 addTodo 的排序说明
+
+        const cb = document.createElement("span");
+        cb.className = "checkbox";
+        cb.setAttribute("aria-label", "切换完成状态");
+
+        const txt = document.createElement("span");
+        txt.className = "todo-text";
+        txt.textContent = todo.text;
+
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.textContent = "✕";
+        del.setAttribute("aria-label", "删除任务");
+
+        li.append(cb, txt, del);
+        listEl.appendChild(li);
+      });
+
+      const remaining = todos.filter(t => !t.completed).length;
+      countEl.textContent = String(remaining);
+
+      // 空状态：无任务时显示占位
+      listEl.classList.toggle("is-empty", todos.length === 0);
+
+      save();
+    }
+
+    /* ============================================================
+       任务操作
+       ============================================================ */
+    function addTodo() {
+      const text = input.value.trim();
+      if (!text) return; // 空输入不做响应
+
+      todos.unshift({
+        id: uid(),
+        text: text,
+        completed: false,
+        createdAt: Date.now()
+      });
+      input.value = "";
+      render();
+      input.focus(); // 添加后保持聚焦，方便连续输入
+    }
+
+    /* 切换完成状态（事件委托处理） */
+    function toggleTodo(index) {
+      if (index < 0 || index >= todos.length) return;
+      todos[index].completed = !todos[index].completed;
+      render();
+    }
+
+    function deleteTodo(index) {
+      if (index < 0 || index >= todos.length) return;
+      const item = listEl.children[index];
+      // 平滑淡出后再移除，避免突兀
+      if (item) {
+        item.classList.add("removing");
+        setTimeout(() => {
+          todos.splice(index, 1);
+          render();
+        }, 200);
+      } else {
+        todos.splice(index, 1);
+        render();
+      }
+    }
+
+    /* 清除所有已完成任务 */
+    function clearCompleted() {
+      const before = todos.length;
+      todos = todos.filter(t => !t.completed);
+      if (todos.length === before) {
+        // 无已完成任务时给出轻微提示
+        flashClearHint();
+        return;
+      }
+      render();
+    }
+
+    function flashClearHint() {
+      const old = clearBtn.style.color;
+      clearBtn.style.color = "var(--danger)";
+      clearBtn.textContent = "没有已完成任务";
+      setTimeout(() => {
+        clearBtn.style.color = old;
+        clearBtn.textContent = "清除已完成";
+      }, 900);
+    }
+
+    /* ============================================================
+       事件绑定（列表用事件委托）
+       ============================================================ */
+    addBtn.addEventListener("click", addTodo);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addTodo();
+    });
+
+    listEl.addEventListener("click", (e) => {
+      const li = e.target.closest(".todo-item");
+      if (!li) return;
+      const index = Number(li.dataset.index);
+
+      if (e.target.closest(".delete-btn")) {
+        deleteTodo(index);
+      } else if (e.target.closest(".checkbox")) {
+        // 等待当前淡出动画不影响后续
+        toggleTodo(index);
+      }
+    });
+
+    clearBtn.addEventListener("click", clearCompleted);
+
+    /* ============================================================
+       拖拽（仅标题栏） + 复位
+       ============================================================ */
+    let dragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    titlebar.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;             // 仅左键
+      if (e.target.closest("button")) return; // 避免与标题栏内按钮冲突
+
+      const rect = card.getBoundingClientRect();
+      dragging = true;
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+      card.classList.add("dragging");
+      document.body.style.userSelect = "none";
+
+      e.preventDefault();
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      // 拖拽时改用 left/top 定位，清除默认 right/bottom
+      card.style.right = "auto";
+      card.style.bottom = "auto";
+      card.style.left = Math.max(0, e.clientX - dragOffsetX) + "px";
+      card.style.top = Math.max(0, e.clientY - dragOffsetY) + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove("dragging");
+      document.body.style.userSelect = "";
+    });
+
+    /* 复位：回到右下角默认位置 */
+    resetBtn.addEventListener("click", () => {
+      card.style.left = "auto";
+      card.style.top = "auto";
+      card.style.right = DEFAULT_RIGHT + "px";
+      card.style.bottom = DEFAULT_BOTTOM + "px";
+    });
+
+    /* ============================================================
+       关闭（手动 ✕ 或收到本地服务的“停止”指令）
+       ============================================================ */
+    function quitApp() {
+      // 若由本地服务托管，先通知服务（用于 /cmd 返回 close 的场景）
+      try { fetch("/stop", { method: "POST", cache: "no-store" }).catch(() => {}); }
+      catch (e) { /* file 模式无服务，忽略 */ }
+
+      // 窗口若是脚本打开的可以直接关闭；否则兜底导航到空白页
+      try { window.opener = null; window.close(); } catch (e) {}
+      setTimeout(() => {
+        try { window.location.replace("about:blank"); } catch (e) {}
+      }, 100);
+    }
+
+    closeBtn.addEventListener("click", quitApp);
+
+    /* 通过本地服务远程关闭：页面周期轮询 /cmd，收到 close 则自我关闭。
+       仅当页面由 http 托管时启用；直接双击打开的 file 模式则跳过。 */
+    function setupRemoteClose() {
+      if (location.protocol !== "http:" && location.protocol !== "https:") return;
+      setInterval(async () => {
+        try {
+          const res = await fetch("/cmd", { cache: "no-store" });
+          const data = await res.json();
+          if (data && data.cmd === "close") quitApp();
+        } catch (e) { /* 服务已停止，忽略 */ }
+      }, 1000);
+    }
+
+    /* 页面尺寸变化时若卡片被拖出可视区，轻微校正避免丢失 */
+    window.addEventListener("resize", () => {
+      // 仅当卡片处于“拖拽定位”（使用 left/top）时才校正
+      const leftStyle = card.style.left;
+      if (leftStyle && leftStyle !== "auto") {
+        const rect = card.getBoundingClientRect();
+        const vw = window.innerWidth;
+        // 若右边界越出视口，则平移回视口内
+        const maxLeft = vw - rect.width - 4;
+        if (rect.left > maxLeft) card.style.left = Math.max(0, maxLeft) + "px";
+      }
+    });
+
+    /* ============================================================
+       初始聚焦便于连续输入
+       ============================================================ */
+    input.focus();
+
+    /* ============================================================
+       启动
+       ============================================================ */
+    load();
+    renderDate();
+    scheduleDateTick();
+    render();
+  </script>
+</body>
+</html>

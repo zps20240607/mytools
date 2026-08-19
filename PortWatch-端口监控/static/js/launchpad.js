@@ -160,6 +160,10 @@ function createAppCard() {
   const actions = el('div', 'app-actions');
   const primary = el('button', 'btn app-primary');
   primary.type = 'button';
+  const bStopBg = el('button', 'btn small ghost');
+  bStopBg.type = 'button';
+  bStopBg.textContent = '停后台';
+  bStopBg.hidden = true;
   const sub = el('div', 'app-sub-actions');
   const bCopy = iconBtn('copy', '复制链接');
   const bLogs = iconBtn('file-text', '日志');
@@ -169,16 +173,28 @@ function createAppCard() {
   bRestart.hidden = true;
   const bEdit = iconBtn('pencil', '编辑');
   const bDel = iconBtn('trash-2', '删除', 'danger');
-  sub.append(bCopy, bLogs, bDiag, bRestart, bEdit, bDel);
+  sub.append(bCopy, bLogs, bDiag, bRestart, bStopBg, bEdit, bDel);
   actions.append(primary, sub);
 
   card.append(head, cmd, actions);
   card._r = { iconBox, iconImg, iconGlyph, iconTxt, name, status, dot,
     stText, stPort, stUp, taskHistory, cmd, primary, copy: bCopy, logs: bLogs,
-    diag: bDiag, restart: bRestart, edit: bEdit, del: bDel };
+    diag: bDiag, restart: bRestart, stopBg: bStopBg, edit: bEdit, del: bDel };
 
   const id = () => card.dataset.key;
   primary.addEventListener('click', () => toggleApp(id(), primary));
+  bStopBg.addEventListener('click', async () => {
+    const a = findApp(id());
+    if (!a) return;
+    bStopBg.disabled = true;
+    try {
+      const result = await act(post('/api/apps/' + id() + '/stop'));
+      if (result && result.ok !== false) toast(result.message || '后台进程已停止');
+    } finally {
+      bStopBg.disabled = false;
+      if (window.__poll) window.__poll();
+    }
+  });
   bCopy.addEventListener('click', async () => {
     const a = findApp(id());
     const p = preferredOpenPort(a);
@@ -400,6 +416,8 @@ function updateAppCard(card, app) {
   r.del.setAttribute('aria-label', '删除 ' + appName);
   card.setAttribute('aria-label', appName + '，' + stTxt);
   r.restart.hidden = !app.running || kind !== 'service';
+  r.stopBg.hidden = !(!app.running && isTask && !!app.stopPattern);
+  r.stopBg.title = '停止该任务启动的后台进程';
   const blocked = !app.running &&
     (!!app.portConflict || !!app.portOccupied || !!healthIssue);
   r.primary.disabled = blocked;
@@ -1039,14 +1057,24 @@ function renderLpKpi(apps, svcs, tasks) {
   setText($('#lpStatWarnSub'), warn ? '需要处理' : '无需处理');
   /* 与「服务监控」同口径：我的服务负载合计 */
   let cpuSum = 0, memSum = 0;
-  for (const s of ((state.data && state.data.services) || [])) {
-    if (s.group !== 'mine' || s.hidden) continue;
-    cpuSum += s.cpu || 0;
-    memSum += s.mem || 0;
+  const svcList = (state.data && state.data.services) || [];
+  if (typeof state.data.cpuPct === 'number') {
+    cpuSum = state.data.cpuPct; memSum = state.data.memPct;
+  } else {
+    const seenPids = new Set();
+    for (const s of svcList) {
+      if (s.group !== 'mine' || s.hidden) continue;
+      if (seenPids.has(s.pid)) continue;
+      seenPids.add(s.pid);
+      cpuSum += s.cpu || 0;
+      memSum += s.mem || 0;
+    }
   }
-  setKpiUnit($('#lpStatCpu'), cpuSum.toFixed(1), '%');
+  const cpuCores = (typeof state.data.cpuCores === 'number' && state.data.cpuCores > 0) ? state.data.cpuCores : 1;
+  const cpuAvg = typeof state.data.cpuAvgPct === 'number' ? state.data.cpuAvgPct : (cpuSum / cpuCores);
+  setKpiUnit($('#lpStatCpu'), cpuAvg.toFixed(1), '%');
   setKpiUnit($('#lpStatMem'), memSum.toFixed(1), '%');
-  setText($('#lpStatCpuSub'), '负载' + loadLevel(cpuSum));
+  setText($('#lpStatCpuSub'), cpuCores + ' 核均值 · 负载' + loadLevel(cpuAvg));
   setText($('#lpStatMemSub'), '占用' + loadLevel(memSum));
 }
 

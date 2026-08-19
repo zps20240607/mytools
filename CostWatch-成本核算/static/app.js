@@ -32,6 +32,8 @@ function toast(msg, ok = true, ms = 3000) {
 
 function money(v) { return "$" + (v || 0).toFixed(4); }
 function tokens(v) { return (v || 0).toLocaleString(); }
+function rmb(v, rate) { return "¥" + ((v || 0) * (rate || 7.2)).toFixed(2); }
+function priceUnit(price) { return (price && price.currency === "cny") ? "¥" : "$"; }
 
 async function load() {
   const days = $("days").value;
@@ -49,13 +51,15 @@ async function load() {
 
 function render(data) {
   const s = data.summary;
+  const rate = ((data.prices || {}).rate || {}).cny_per_usd || 7.2;
   $("stats").innerHTML = `
     <span class="chip ok">估算成本 <b>${money(s.estimated_usd)}</b></span>
+    <span class="chip rmb">RMB <b>${rmb(s.estimated_usd, rate)}</b></span>
     <span class="chip">上报成本 <b>${money(s.reported_cost)}</b></span>
     <span class="chip">Token <b>${tokens(s.total)}</b></span>
     <span class="chip">记录 <b>${tokens(s.records)}</b></span>`;
   $("cards").innerHTML = `
-    <div class="card"><b class="money">${money(s.estimated_usd)}</b><span>估算总成本（近 ${s.days || "全部"} 天）</span></div>
+    <div class="card"><b class="money">${money(s.estimated_usd)}</b> <b class="money rmb">${rmb(s.estimated_usd, rate)}</b><span>估算总成本（近 ${s.days || "全部"} 天）</span></div>
     <div class="card"><b>${tokens(s.input + s.cached + s.cache_write)}</b><span>输入 Token（含缓存）</span></div>
     <div class="card"><b>${tokens(s.output)}</b><span>输出 Token</span></div>
     <div class="card"><b>${tokens(s.reasoning)}</b><span>推理 Token</span></div>
@@ -78,10 +82,11 @@ function render(data) {
   $("byModel").innerHTML = data.by_model.map((r) => `
     <tr><td class="model">${esc(r.key)}</td><td>${esc(r.price_name)}</td>
     <td class="money">${money(r.estimated_usd)}</td><td class="num">${tokens(r.total)}</td>
-    <td class="num">$${r.price.input}/M</td><td class="num">$${r.price.output}/M</td></tr>`).join("");
+    <td class="num">${priceUnit(r.price)}${r.price.input}/M</td><td class="num">${priceUnit(r.price)}${r.price.output}/M</td></tr>`).join("");
 
   const unknown = (data.models || []).filter((m) => m.price_name.indexOf("默认") >= 0);
   $("unknownSec").hidden = unknown.length === 0;
+  $("unknownCount").textContent = unknown.length + " 个模型 / " + tokens(unknown.reduce((a, m) => a + (m.records || 0), 0)) + " 条记录未匹配，可在「价格表」中补充规则后自动重新估算";
   $("unknownList").innerHTML = unknown.map((m) => `
     <tr><td class="model">${esc(m.model)}</td><td class="num">${tokens(m.total)}</td>
     <td class="num">${tokens(m.records)}</td></tr>`).join("");

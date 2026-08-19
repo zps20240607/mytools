@@ -12,10 +12,12 @@
   <div class="tabs">
     <button class="tab active" data-tab="local">本地仓库</button>
     <button class="tab" data-tab="github">我的 GitHub 仓库</button>
+    <button class="tab" data-tab="overview">分支总览</button>
   </div>
   <div class="controls">
     <button id="refreshBtn" class="btn">⟳ 刷新</button>
     <button id="settingsBtn" class="btn">设置</button>
+    <button id="themeBtn" class="btn" title="主题切换">🌓</button>
   </div>
 </header>
 <main>
@@ -27,6 +29,13 @@
   <div id="ghView" hidden>
     <div class="grid" id="ghGrid"></div>
     <div id="ghEmpty" class="empty" hidden>还没有 GitHub 仓库，或凭据未配置。</div>
+  <div id="overviewView" hidden>
+    <table class="overview-table">
+      <thead><tr><th>仓库</th><th>当前分支</th><th class="num">脏文件</th><th class="num">本地/远程</th><th class="num">领先/落后</th><th>切换分支</th></tr></thead>
+      <tbody id="overviewBody"></tbody>
+    </table>
+    <div id="overviewEmpty" class="empty" hidden>未发现 Git 仓库。可在「设置」中添加扫描根目录。</div>
+  </div>
   </div>
 </main>
 <footer id="footer"></footer>
@@ -63,10 +72,14 @@
     </div>
     <div id="conflictBox"></div>
     <table>
-      <thead><tr><th>分支</th><th>状态</th><th class="num">领先/落后</th><th>上游</th><th class="num">操作</th></tr></thead>
+      <thead><tr><th>本地分支</th><th>状态</th><th class="num">领先/落后</th><th>上游</th><th class="num">操作</th></tr></thead>
       <tbody id="branchBody"></tbody>
     </table>
-    <p class="desc">删除未合并的分支需要勾选「强制删除」；合并当前分支产生冲突时，可在此「放弃合并」。</p>
+    <table style="margin-top:16px">
+      <thead><tr><th>远程分支</th><th>状态</th><th class="num">领先/落后</th><th>本地对应</th><th class="num">操作</th></tr></thead>
+      <tbody id="remoteBranchBody"></tbody>
+    </table>
+    <p class="desc">本地分支支持切换/合并/删除；远程分支可「检出本地」生成同名本地分支。删除未合并分支会要求确认；合并冲突时可在上方「放弃合并」。</p>
     <div class="row end"><button id="closeBranch" class="btn ghost">关闭</button></div>
   </div>
 </div>
@@ -86,6 +99,7 @@
 </div>
 
 <div id="toast" class="toast" hidden></div>
+<script src="/static/theme.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

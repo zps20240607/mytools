@@ -1,73 +1,127 @@
 :root {
-  --bg: #0b0e14; --panel: #11151f; --panel2: #161c2b; --border: #1e2636;
-  --text: #dbe4f0; --muted: #8b96ab; --accent: #5b8cff; --ok: #37c26a;
-  --warn: #f5a623; --danger: #ff5c5c; --radius: 10px;
+  /* 墨夜（深色） */
+  --bg: #1c1813; --panel: #26211a; --panel2: #201b15; --border: rgba(230,218,192,0.14);
+  --dash: rgba(230,218,192,0.12);
+  --text: #e6dac0; --muted: #a89a80; --accent: #c8543f; --gold: #c9a35c;
+  --ok: #8a9d74; --warn: #c9a35c; --danger: #c8543f; --info: #7d93a0; --radius: 5px;
+  --header-bg: rgba(28,24,19,.92); --modal-mask: rgba(12,10,7,.65);
+  --input-bg: #171310; --shadow: 0 10px 30px rgba(0,0,0,.4); --bar-end: #7d2a1e;
+  --noise: rgba(230,218,192,0.05); --wash: rgba(230,218,192,0.04);
+  --font-serif: 'Noto Serif SC','Source Han Serif SC','STSong','SimSun',serif;
+  --font-kai: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif;
+}
+[data-theme="light"] {
+  /* 宣纸（浅色） */
+  --bg: #f4ecdc; --panel: #ede3cf; --panel2: #e6dbc4; --border: rgba(43,36,25,0.18);
+  --dash: rgba(43,36,25,0.14);
+  --text: #2b2419; --muted: #5d5343; --accent: #a33b2c; --gold: #b78b3d;
+  --ok: #5f7351; --warn: #b78b3d; --danger: #a33b2c; --info: #4a5d68; --radius: 5px;
+  --header-bg: rgba(244,236,220,.88); --modal-mask: rgba(43,36,25,.42);
+  --input-bg: #fbf5e6; --shadow: 0 10px 30px rgba(43,36,25,0.08); --bar-end: #b78b3d;
+  --noise: rgba(120,100,60,0.06); --wash: rgba(43,36,25,0.05);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4ecdc; --panel: #ede3cf; --panel2: #e6dbc4; --border: rgba(43,36,25,0.18);
+    --dash: rgba(43,36,25,0.14);
+    --text: #2b2419; --muted: #5d5343; --accent: #a33b2c; --gold: #b78b3d;
+    --ok: #5f7351; --warn: #b78b3d; --danger: #a33b2c; --info: #4a5d68; --radius: 5px;
+    --header-bg: rgba(244,236,220,.88); --modal-mask: rgba(43,36,25,.42);
+    --input-bg: #fbf5e6; --shadow: 0 10px 30px rgba(43,36,25,0.08); --bar-end: #b78b3d;
+    --noise: rgba(120,100,60,0.06); --wash: rgba(43,36,25,0.05);
+  }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; }
+  font: 14px/1.6 'Noto Serif SC','Source Han Serif SC','STSong','SimSun',serif;
+  /* 宣纸噪点 + 页顶水墨晕染 */
+  background-image:
+    radial-gradient(var(--noise) 1px, transparent 1.5px),
+    radial-gradient(var(--noise) 1px, transparent 1.5px),
+    radial-gradient(600px 200px at 20% -40px, var(--wash), transparent 70%);
+  background-size: 20px 20px, 20px 20px, 100% 100%;
+  background-position: 0 0, 10px 10px, 0 0;
+  background-repeat: repeat, repeat, no-repeat; }
 header { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap;
-  gap: 12px; align-items: center; padding: 12px 20px; background: rgba(11,14,20,.92);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
-.brand { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  gap: 12px; align-items: center; padding: 12px 20px; background: var(--header-bg);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  /* 页头底部金色渐变分隔线 */
+  background-image: linear-gradient(90deg, transparent, var(--gold), transparent);
+  background-repeat: no-repeat; background-position: bottom; background-size: 100% 1px; }
+.brand { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif;
+  letter-spacing: 4px; }
 .brand .logo { color: var(--accent); }
-.brand .sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.brand .sub { font-size: 12px; color: var(--muted); font-weight: 400; letter-spacing: 2px; }
+/* 朱砂印章方块 */
+.brand::after { content: "成本"; margin-left: 6px; font-size: 12px; line-height: 1;
+  letter-spacing: 2px; color: var(--accent); border: 3px solid var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent); border-radius: 3px; padding: 3px 3px 3px 5px; }
 .stats { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
-.chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 999px;
+.chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px;
   padding: 3px 10px; font-size: 12px; color: var(--muted); }
 .chip b { color: var(--text); }
 .chip.ok b { color: var(--ok); }
 .controls { display: flex; gap: 8px; align-items: center; }
 select { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 8px; padding: 6px 10px; font-size: 13px; outline: none; }
+  border-radius: 4px; padding: 6px 10px; font-size: 13px; outline: none; }
 .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  border-radius: 4px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
 .btn:hover { border-color: var(--accent); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #f4ecdc; }
 .btn.ghost { background: transparent; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 main { padding: 20px; max-width: 1200px; margin: 0 auto; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-.card b { display: block; font-size: 19px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
+  padding: 12px 14px; transition: transform .15s ease, box-shadow .15s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.card b { display: block; font-size: 19px;
+  font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif; }
 .card b.money { color: var(--ok); }
 .card span { color: var(--muted); font-size: 12px; }
 section { margin-bottom: 22px; }
-h3 { font-size: 15px; border-left: 3px solid var(--accent); padding-left: 10px; margin: 0 0 10px; }
+h3 { font-size: 15px; margin: 0 0 10px;
+  font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif;
+  letter-spacing: 3px; }
+/* 标题下短朱砂线 */
+h3::after { content: ""; display: block; width: 70px; height: 3px;
+  background: var(--accent); margin-top: 4px; }
 .chart { display: flex; align-items: flex-end; gap: 3px; height: 140px; background: var(--panel);
-  border: 1px solid var(--border); border-radius: 10px; padding: 10px; overflow-x: auto; }
+  border: 1px solid var(--border); border-radius: 5px; padding: 10px; overflow-x: auto; }
 .bar-wrap { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 18px; flex: 1; }
-.bar { background: linear-gradient(180deg, var(--accent), #3b5fbd); border-radius: 3px 3px 0 0; min-height: 2px; cursor: default; }
+.bar { background: linear-gradient(180deg, var(--accent), var(--bar-end)); border-radius: 3px 3px 0 0; min-height: 2px; cursor: default; }
 .bar:hover { filter: brightness(1.3); }
 .bar-label { font-size: 9px; color: var(--muted); text-align: center; margin-top: 4px; transform: rotate(-45deg); white-space: nowrap; }
 table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border);
-  border-radius: 8px; overflow: hidden; }
-th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-th { color: var(--muted); font-weight: 500; background: var(--panel2); white-space: nowrap; }
+  border-radius: 5px; overflow: hidden; }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px dashed var(--dash); font-size: 13px; }
+th { color: var(--muted); font-weight: 500; background: var(--panel2); white-space: nowrap;
+  border-bottom: 1px solid var(--border); }
 tr:last-child td { border-bottom: none; }
 td.num { text-align: right; font-family: Consolas, monospace; white-space: nowrap; }
 td.money { text-align: right; font-family: Consolas, monospace; color: var(--ok); white-space: nowrap; }
 td.model { font-family: Consolas, monospace; font-size: 12px; word-break: break-all; }
-.tag { font-size: 11px; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--border); white-space: nowrap; }
-.tag.ok { color: var(--ok); border-color: rgba(55,194,106,.4); }
-.tag.warn { color: var(--warn); border-color: rgba(245,166,35,.4); }
+.tag { font-size: 11px; border-radius: 4px; padding: 1px 8px; border: 1px solid var(--border); white-space: nowrap; }
+.tag.ok { color: var(--ok); border-color: rgba(95,115,81,.5); }
+.tag.warn { color: var(--warn); border-color: rgba(183,139,61,.5); }
 .empty { text-align: center; color: var(--muted); padding: 50px 0; }
 footer { padding: 8px 20px 20px; color: var(--muted); font-size: 12px; }
-.modal { position: fixed; inset: 0; z-index: 50; background: rgba(5,8,14,.6);
+.modal { position: fixed; inset: 0; z-index: 50; background: var(--modal-mask);
   display: flex; align-items: center; justify-content: center; padding: 20px; }
 .modal[hidden] { display: none; }
-.modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+.modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
   padding: 18px; width: min(760px, 100%); max-height: 85vh; overflow: auto;
-  display: flex; flex-direction: column; gap: 12px; }
+  display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
 .modal-box h3 { margin: 0; }
-textarea { background: #070a10; color: var(--text); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px; font: 12px/1.5 Consolas, monospace; min-height: 380px;
+textarea { background: var(--input-bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 4px; padding: 10px; font: 12px/1.5 Consolas, monospace; min-height: 380px;
   resize: vertical; outline: none; }
 textarea:focus { border-color: var(--accent); }
 .row { display: flex; gap: 8px; } .row.end { justify-content: flex-end; }
 .hint { color: var(--muted); font-size: 12px; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  background: var(--panel2); border: 1px solid var(--border); border-radius: 999px;
-  padding: 8px 18px; font-size: 13px; z-index: 60; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 18px; font-size: 13px; z-index: 60; box-shadow: var(--shadow); }
 .toast.ok { border-color: var(--ok); color: var(--ok); }
 .toast.err { border-color: var(--danger); color: var(--danger); }

@@ -658,7 +658,93 @@ def write_pid():
         f.write(str(os.getpid()))
 
 
+def cli_snapshot_all(quiet=False, message=None):
+    """对所有有变更的仓库执行 add+commit+push（计划任务入口）。"""
+    repos = find_repos(CONFIG["roots"])
+    if not quiet:
+        print("RepoWatch 快照开始: %d 个仓库" % len(repos))
+    msg = message or time.strftime("chore: RepoWatch 自动快照 %Y-%m-%d %H:%M:%S")
+    total = ok_count = 0
+    failed = []
+    for path in repos:
+        try:
+            info = repo_info(path)
+        except Exception:
+            continue
+        if info["dirty"] <= 0:
+            continue
+        total += 1
+        try:
+            steps = do_snapshot(path, msg)
+        except RuntimeError as exc:
+            failed.append((path, str(exc)))
+            if not quiet:
+                print("  [跳过] %s: %s" % (path, exc))
+            continue
+        ok = all(s["ok"] for s in steps)
+        if ok:
+            ok_count += 1
+        else:
+            failed.append((path, "; ".join(s["detail"] for s in steps if not s["ok"])))
+        if not quiet:
+            for s in steps:
+                print("  [%s] %s: %s" % (s["step"], os.path.basename(path.rstrip("\\/")) or path, s["detail"]))
+    if not quiet:
+        if total == 0:
+            print("没有脏仓库，无需快照。")
+        else:
+            print("快照完成: %d/%d 成功" % (ok_count, total))
+    return 0 if not failed else 1
+
+
+def cli_install(day_time="22:00"):
+    """注册 Windows 计划任务：每天固定时间自动快照并推送脏仓库。"""
+    if os.name != "nt":
+        print("计划任务仅支持 Windows。")
+        return 1
+    interp = sys.executable
+    target = os.path.abspath(__file__)
+    name = "RepoWatch\\DailySnapshot"
+    tr = '"%s" "%s" snapshot --quiet' % (interp, target)
+    sched = "/SC DAILY /ST %s" % day_time
+    cmd = (["schtasks", "/Create", "/F", "/TN", name, "/TR", tr, "/RL", "LIMITED"]
+           + sched.split())
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode == 0:
+        print("[OK] 已注册计划任务 %s（每天 %s 自动快照并推送）" % (name, day_time))
+        print('可用 schtasks /Query /TN "RepoWatch\\DailySnapshot" 查看任务状态。')
+        return 0
+    print("[失败] %s: %s" % (name, r.stderr.strip() or r.stdout.strip()))
+    return 1
+
+
+def cli_uninstall():
+    """删除 RepoWatch 计划任务。"""
+    name = "RepoWatch\\DailySnapshot"
+    r = subprocess.run(["schtasks", "/Delete", "/F", "/TN", name],
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        print("[OK] 已删除计划任务 %s" % name)
+        return 0
+    print("[跳过] %s: %s" % (name, r.stderr.strip() or "不存在"))
+    return 0
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("snapshot", "install", "uninstall"):
+        sub_cmd, rest = sys.argv[1], sys.argv[2:]
+        if sub_cmd == "snapshot":
+            parser = argparse.ArgumentParser(prog="repo_watch snapshot")
+            parser.add_argument("--quiet", action="store_true", help="安静模式（计划任务用）")
+            parser.add_argument("--message", default=None, help="自定义提交信息")
+            args = parser.parse_args(rest)
+            return cli_snapshot_all(args.quiet, args.message)
+        if sub_cmd == "install":
+            parser = argparse.ArgumentParser(prog="repo_watch install")
+            parser.add_argument("--time", default="22:00", help="每天执行时间 HH:MM（默认 22:00）")
+            args = parser.parse_args(rest)
+            return cli_install(args.time)
+        return cli_uninstall()
     parser = argparse.ArgumentParser(description="RepoWatch 仓库总控台")
     parser.add_argument("--preferred-port", type=int, default=None)
     parser.add_argument("--no-browser", action="store_true")
@@ -688,5 +774,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 
