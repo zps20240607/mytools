@@ -164,10 +164,14 @@ $xaml = @'
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBox x:Name="Input" Style="{StaticResource RoundBox}" Height="34" FontSize="13.5"
                  Foreground="#3A3A3A" Margin="0,0,8,0" ToolTip="添加新任务，回车提交，Esc 清空"/>
-        <Button x:Name="BtnAdd" Grid.Column="1" Style="{StaticResource AddBtn}"
+        <CheckBox x:Name="ChkLong" Grid.Column="1" Content="长期" FontSize="12.5"
+                  Foreground="#5D5343" VerticalAlignment="Center" Margin="0,0,8,0"
+                  Cursor="Hand" ToolTip="勾选后，添加的任务将长期保留（不随每日清空）"/>
+        <Button x:Name="BtnAdd" Grid.Column="2" Style="{StaticResource AddBtn}"
                 Content="＋" Width="36" Height="34" ToolTip="添加任务"/>
       </Grid>
 
@@ -212,10 +216,11 @@ $brushConverter = New-Object System.Windows.Media.BrushConverter
 $brushMain  = $brushConverter.ConvertFrom('#3A3A3A')
 $brushSub   = $brushConverter.ConvertFrom('#8C8C8C')
 $brushHover = $brushConverter.ConvertFrom('#E6E6E6')
+$brushGold  = $brushConverter.ConvertFrom('#B78B3D')
 
 # ============================================================
 # Data (JSON persistence)
-# Model: { id; text; completed; createdAt }
+# Model: { id; text; completed; createdAt; longTerm; day }
 # ============================================================
 $script:todos = New-Object System.Collections.ArrayList
 
@@ -224,8 +229,15 @@ function Load-Todos {
     try {
         $raw = Get-Content $DataFile -Raw -Encoding UTF8
         if ([string]::IsNullOrWhiteSpace($raw)) { return }
+        $today = (Get-Date).ToString('yyyy-MM-dd')
         foreach ($t in @(ConvertFrom-Json $raw)) {
-            if ($null -ne $t -and $null -ne $t.text) { [void]$script:todos.Add($t) }
+            if ($null -eq $t -or $null -eq $t.text) { continue }
+            # 兼容旧数据：无 longTerm/day 字段视为今日短期任务
+            if (-not $t.PSObject.Properties['longTerm']) { $t | Add-Member NoteProperty longTerm $false }
+            if (-not $t.PSObject.Properties['day']) { $t | Add-Member NoteProperty day $today }
+            # 短期任务跨天自动清空，长期任务保留
+            if (-not [bool]$t.longTerm -and [string]$t.day -ne $today) { continue }
+            [void]$script:todos.Add($t)
         }
     } catch {}
 }
@@ -324,9 +336,11 @@ function New-TodoRow($todo) {
     $c1 = New-Object System.Windows.Controls.ColumnDefinition; $c1.Width = 'Auto'
     $c2 = New-Object System.Windows.Controls.ColumnDefinition
     $c3 = New-Object System.Windows.Controls.ColumnDefinition; $c3.Width = 'Auto'
+    $c4 = New-Object System.Windows.Controls.ColumnDefinition; $c4.Width = 'Auto'
     [void]$g.ColumnDefinitions.Add($c1)
     [void]$g.ColumnDefinitions.Add($c2)
     [void]$g.ColumnDefinitions.Add($c3)
+    [void]$g.ColumnDefinitions.Add($c4)
 
     $cb = New-Object System.Windows.Controls.CheckBox
     $cb.Style = $win.FindResource('CircleCheck')
@@ -348,6 +362,16 @@ function New-TodoRow($todo) {
     $del.Style = $win.FindResource('IconBtn')
     $del.VerticalAlignment = 'Center'
     $del.ToolTip = '删除任务'
+
+    # 📌 长期/短期切换按钮：长期任务高亮金色
+    $pin = New-Object System.Windows.Controls.Button
+    $pin.Content = '📌'
+    $pin.Style = $win.FindResource('IconBtn')
+    $pin.FontSize = 11
+    $pin.VerticalAlignment = 'Center'
+    $pin.ToolTip = $(if ([bool]$todo.longTerm) { '转回今日任务（跨天会清空）' } else { '转为长期任务（一直保留）' })
+    if ([bool]$todo.longTerm) { $pin.Foreground = $brushGold } else { $pin.Foreground = $brushSub }
+    $pin.Tag = $todo
 
     Set-RowVisual $tb ([bool]$todo.completed)
 
@@ -376,19 +400,55 @@ function New-TodoRow($todo) {
         if ($e.ClickCount -eq 2) { Start-Edit $s; $e.Handled = $true }
     })
 
+    $pin.Add_Click({
+        param($s, $e)
+        $t = $s.Tag
+        $t.longTerm = -not [bool]$t.longTerm
+        if ([bool]$t.longTerm) { $t.day = $null }
+        else { $t.day = (Get-Date).ToString('yyyy-MM-dd') }
+        Render-List
+        Save-Todos
+    })
+
     [System.Windows.Controls.Grid]::SetColumn($cb, 0)
     [System.Windows.Controls.Grid]::SetColumn($tb, 1)
-    [System.Windows.Controls.Grid]::SetColumn($del, 2)
+    [System.Windows.Controls.Grid]::SetColumn($pin, 2)
+    [System.Windows.Controls.Grid]::SetColumn($del, 3)
     [void]$g.Children.Add($cb)
     [void]$g.Children.Add($tb)
+    [void]$g.Children.Add($pin)
     [void]$g.Children.Add($del)
     return $g
 }
 
+function New-SectionHeader([string]$title, [string]$color) {
+    $sp = New-Object System.Windows.Controls.StackPanel
+    $sp.Orientation = 'Horizontal'
+    $sp.Margin = New-Object System.Windows.Thickness(10,10,10,2)
+    $line = New-Object System.Windows.Shapes.Rectangle
+    $line.Width = 26; $line.Height = 2
+    $line.Fill = $brushConverter.ConvertFromString($color)
+    $line.VerticalAlignment = 'Center'
+    $line.Margin = New-Object System.Windows.Thickness(0,0,6,0)
+    $tb = New-Object System.Windows.Controls.TextBlock
+    $tb.Text = $title
+    $tb.FontSize = 12
+    $tb.Foreground = $brushConverter.ConvertFromString($color)
+    $tb.VerticalAlignment = 'Center'
+    [void]$sp.Children.Add($line)
+    [void]$sp.Children.Add($tb)
+    return $sp
+}
+
 function Render-List {
     $TodoList.Items.Clear()
-    foreach ($t in $script:todos) {
-        [void]$TodoList.Items.Add((New-TodoRow $t))
+    $long  = @($script:todos | Where-Object { [bool]$_.longTerm })
+    $short = @($script:todos | Where-Object { -not [bool]$_.longTerm })
+    if ($script:todos.Count -gt 0) {
+        [void]$TodoList.Items.Add((New-SectionHeader '长期任务' '#A33B2C'))
+        foreach ($t in $long) { [void]$TodoList.Items.Add((New-TodoRow $t)) }
+        [void]$TodoList.Items.Add((New-SectionHeader '今日任务' '#B78B3D'))
+        foreach ($t in $short) { [void]$TodoList.Items.Add((New-TodoRow $t)) }
     }
     Update-Count
 }
@@ -404,8 +464,11 @@ function Add-Todo {
         text      = $text
         completed = $false
         createdAt = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+        longTerm  = [bool]$ChkLong.IsChecked
+        day       = $(if ($ChkLong.IsChecked) { $null } else { (Get-Date).ToString('yyyy-MM-dd') })
     }
     $script:todos.Insert(0, $todo)   # newest on top
+    $ChkLong.IsChecked = $false      # 添加后重置勾选
     $InputBox.Text = ''
     Render-List
     Save-Todos
@@ -452,9 +515,22 @@ function Update-DateLine {
         $now.Month.ToString('00'), $now.Day.ToString('00'), $Weekdays[[int]$now.DayOfWeek]
 }
 
+$script:currentDay = (Get-Date).ToString('yyyy-MM-dd')
 $dateTimer = New-Object System.Windows.Threading.DispatcherTimer
 $dateTimer.Interval = [TimeSpan]::FromSeconds(30)
-$dateTimer.Add_Tick({ Update-DateLine })
+$dateTimer.Add_Tick({
+    Update-DateLine
+    $d = (Get-Date).ToString('yyyy-MM-dd')
+    if ($d -ne $script:currentDay) {
+        # 跨天：清掉昨日短期任务，长期任务保留
+        $script:currentDay = $d
+        $keep = @($script:todos | Where-Object { [bool]$_.longTerm })
+        $script:todos.Clear()
+        foreach ($t in $keep) { [void]$script:todos.Add($t) }
+        Render-List
+        Save-Todos
+    }
+})
 $dateTimer.Start()
 
 # ============================================================
