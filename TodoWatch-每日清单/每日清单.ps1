@@ -1,4 +1,4 @@
-# 每日清单.ps1 - Daily Todo Widget (native WPF, gray glass theme)
+﻿# 每日清单.ps1 - Daily Todo Widget (native WPF, gray glass theme)
 # Features: QQ-style top-dock auto hide/show, draggable, gray translucent card,
 # add / toggle / delete / double-click edit tasks, clear completed, JSON persistence.
 
