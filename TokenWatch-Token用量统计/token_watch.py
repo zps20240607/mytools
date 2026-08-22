@@ -60,7 +60,7 @@ SOURCES = {
 }
 
 TOOL_LABELS = {"codex": "Codex", "kimi": "Kimi Code", "openclaw": "OpenClaw", "deepseek": "DeepSeek Harness"}
-TOOL_COLORS = {"codex": "#82966f", "kimi": "#7a92a0", "openclaw": "#c9a35c", "deepseek": "#c8543f"}
+TOOL_COLORS = {"codex": "#e56399", "kimi": "#8b7cf6", "openclaw": "#f0a03c", "deepseek": "#4fa3ff"}
 TOOL_ORDER = ["codex", "kimi", "openclaw", "deepseek"]
 
 
@@ -93,7 +93,8 @@ def local_day(ts: str) -> str:
     if not ts:
         return ""
     try:
-        dt = datetime.fromisoformat(ts)
+        # Codex/OpenClaw 的原始时间戳可能是 Z 结尾，先归一化为 +00:00
+        dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
     except Exception:
         return ""
     if dt.tzinfo is None:
@@ -672,7 +673,10 @@ def scan(force: bool = False, quiet: bool = False) -> int:
         nonlocal new_count
         rec = dict(rec)
         rec["day"] = local_day(rec.get("ts") or "")
-        cur = conn.execute(
+        exists = conn.execute(
+            "SELECT 1 FROM records WHERE key=?", (rec["key"],)
+        ).fetchone()
+        conn.execute(
             """
             INSERT OR REPLACE INTO records
               (key, tool, model, provider, ts, day, input, output, cached,
@@ -683,7 +687,10 @@ def scan(force: bool = False, quiet: bool = False) -> int:
             """,
             rec,
         )
-        new_count += cur.rowcount
+        # INSERT OR REPLACE 会把同 key 的旧记录删掉重插（rowcount 恒为 1），
+        # 只有 key 原本不存在才是真正的新增，避免 --force 重扫把替换也计成“新增”。
+        if exists is None:
+            new_count += 1
 
     error_count = 0
     files = []
@@ -916,10 +923,10 @@ def _svg_stackbar(by_day, days=30):
         y = PAD_T + (H - PAD_T - PAD_B) * (4 - i) / 4
         val = maxv * i / 4
         parts.append(
-            f'<line x1="{PAD_L}" y1="{y:.1f}" x2="{W}" y2="{y:.1f}" stroke="rgba(230,218,192,0.14)" stroke-width="1"/>'
+            f'<line x1="{PAD_L}" y1="{y:.1f}" x2="{W}" y2="{y:.1f}" stroke="rgba(232,230,239,0.06)" stroke-width="1"/>'
         )
         parts.append(
-            f'<text x="{PAD_L - 8}" y="{y + 4:.1f}" text-anchor="end" fill="#a89a80" font-size="11">{fmt_num(val)}</text>'
+            f'<text x="{PAD_L - 8}" y="{y + 4:.1f}" text-anchor="end" fill="#9b97a8" font-size="11">{fmt_num(val)}</text>'
         )
     for idx, day in enumerate(days_list):
         x = PAD_L + idx * bw
@@ -937,11 +944,11 @@ def _svg_stackbar(by_day, days=30):
             y_cursor = y
         if idx % 5 == 0 or idx == len(days_list) - 1:
             parts.append(
-                f'<text x="{x + bw / 2:.1f}" y="{H - 14}" text-anchor="middle" fill="#a89a80" font-size="10">{day[5:]}</text>'
+                f'<text x="{x + bw / 2:.1f}" y="{H - 14}" text-anchor="middle" fill="#9b97a8" font-size="10">{day[5:]}</text>'
             )
     parts.append("</svg>")
     legend = "".join(
-        f'<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;color:#cbbda0">'
+        f'<span style="display:inline-flex;align-items:center;gap:6px;margin-right:18px;color:#9b97a8">'
         f'<span style="width:12px;height:12px;border-radius:3px;background:{TOOL_COLORS[t]}"></span>{TOOL_LABELS[t]}</span>'
         for t in TOOL_ORDER
     )
@@ -951,7 +958,7 @@ def _svg_stackbar(by_day, days=30):
 def _svg_modelbars(by_model, top=12):
     items = [m for m in by_model[:top] if m["total"]]
     if not items:
-        return "<p style='color:#a89a80'>暂无数据</p>"
+        return "<p style='color:#9b97a8'>暂无数据</p>"
     maxv = max(m["total"] for m in items) or 1
     W, H = 1080, len(items) * 34 + 20
     parts = [
@@ -964,20 +971,20 @@ def _svg_modelbars(by_model, top=12):
         model_full = m["model"] or ""
         label = model_full[:30]
         w = max(bar_max * m["total"] / maxv, 2)
-        color = TOOL_COLORS.get(m["tool"], "#8f8268")
+        color = TOOL_COLORS.get(m["tool"], "#6f6b7d")
         tip = ""
         if model_full:
             tip = (f'<title>{html.escape(model_full)} · '
                    f'{TOOL_LABELS.get(m["tool"], m["tool"])} · '
                    f'{fmt_num(m["total"])} tokens</title>')
-        parts.append(f'<text x="4" y="{y + 4}" fill="#cbbda0" font-size="12">{tip}{html.escape(label)}</text>')
+        parts.append(f'<text x="4" y="{y + 4}" fill="#e8e6ef" font-size="12">{tip}{html.escape(label)}</text>')
         parts.append(
-            f'<text x="310" y="{y + 4}" fill="#a89a80" font-size="11" text-anchor="end">'
+            f'<text x="310" y="{y + 4}" fill="#9b97a8" font-size="11" text-anchor="end">'
             f'{TOOL_LABELS.get(m["tool"], m["tool"])}</text>'
         )
         parts.append(f'<rect x="318" y="{y - 8}" width="{w:.1f}" height="14" rx="3" fill="{color}"/>')
         parts.append(
-            f'<text x="{val_x}" y="{y + 4}" text-anchor="end" fill="#e6dac0" font-size="11">{fmt_num(m["total"])}</text>'
+            f'<text x="{val_x}" y="{y + 4}" text-anchor="end" fill="#e8e6ef" font-size="11">{fmt_num(m["total"])}</text>'
         )
     parts.append("</svg>")
     return "".join(parts)
@@ -987,7 +994,7 @@ def _svg_donut(by_tool, size=220):
     vals = [(t, float(by_tool.get(t, {}).get("total") or 0)) for t in TOOL_ORDER]
     total = sum(v for _, v in vals)
     if total <= 0:
-        return "<p style='color:#a89a80'>暂无数据</p>", ""
+        return "<p style='color:#9b97a8'>暂无数据</p>", ""
     r, cx, cy, sw = 70, size / 2, size / 2, 34
     circ = 2 * 3.14159265 * r
     parts = [
@@ -1006,20 +1013,20 @@ def _svg_donut(by_tool, size=220):
         )
         acc += frac
     parts.append(
-        f'<text x="{cx}" y="{cy - 4}" text-anchor="middle" fill="#e6dac0" font-size="20" font-weight="600">{fmt_num(total)}</text>'
+        f'<text x="{cx}" y="{cy - 4}" text-anchor="middle" fill="#e8e6ef" font-size="20" font-weight="600">{fmt_num(total)}</text>'
     )
     parts.append(
-        f'<text x="{cx}" y="{cy + 16}" text-anchor="middle" fill="#a89a80" font-size="11">Token 合计</text>'
+        f'<text x="{cx}" y="{cy + 16}" text-anchor="middle" fill="#9b97a8" font-size="11">Token 合计</text>'
     )
     parts.append("</svg>")
     legend = ""
     for t, v in vals:
         pct = v / total * 100
         legend += (
-            f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;color:#cbbda0">'
+            f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:13px;color:#9b97a8">'
             f'<span style="width:10px;height:10px;border-radius:3px;background:{TOOL_COLORS[t]}"></span>'
             f'{TOOL_LABELS[t]}  <b style="margin-left:auto">{fmt_num(v)}</b>'
-            f'<span style="color:#a89a80">{pct:.1f}%</span></div>'
+            f'<span style="color:#9b97a8">{pct:.1f}%</span></div>'
         )
     return "".join(parts), legend
 
@@ -1047,12 +1054,12 @@ def build_dashboard(stats, out_path):
     pct30 = f"{t30['total'] / t['total'] * 100:.1f}%" if t["total"] else "0%"
 
     cards = [
-        ("Token 总计", fmt_num(t["total"]), "全部历史累计", "#c8543f"),
-        ("近 30 天", fmt_num(t30["total"]), f"占总量 {pct30}", "#7a92a0"),
-        ("近 7 天", fmt_num(t7["total"]), f"占总量 {pct7}", "#c9a35c"),
-        ("输入 Token", fmt_num(t["input"]), f"缓存读 {fmt_num(t['cached'])}", "#7a92a0"),
-        ("输出 Token", fmt_num(t["output"]), f"含推理 {fmt_num(t['reasoning'])}", "#c8543f"),
-        ("记录条数", fmt_int(t["records"]), f"费用 ¥{t['cost']:.4f}" if t.get("cost") else "费用暂无", "#c9a35c"),
+        ("Token 总计", fmt_num(t["total"]), "全部历史累计", "#e56399"),
+        ("近 30 天", fmt_num(t30["total"]), f"占总量 {pct30}", "#8b7cf6"),
+        ("近 7 天", fmt_num(t7["total"]), f"占总量 {pct7}", "#f0a03c"),
+        ("输入 Token", fmt_num(t["input"]), f"缓存读 {fmt_num(t['cached'])}", "#8b7cf6"),
+        ("输出 Token", fmt_num(t["output"]), f"含推理 {fmt_num(t['reasoning'])}", "#e56399"),
+        ("记录条数", fmt_int(t["records"]), f"费用 ¥{t['cost']:.4f}" if t.get("cost") else "费用暂无", "#f0a03c"),
     ]
     card_html = "".join(
         f'<div class="card"><div class="card-label">{label}</div>'
@@ -1066,48 +1073,43 @@ def build_dashboard(stats, out_path):
         ts = _fmt_local(r["ts"])
         rows.append(
             f"<tr><td>{html.escape(ts)}</td>"
-            f"<td><span class='badge' style='background:{TOOL_COLORS.get(r['tool'], '#8f8268')}'>"
+            f"<td><span class='badge' style='background:{TOOL_COLORS.get(r['tool'], '#6f6b7d')}'>"
             f"{TOOL_LABELS.get(r['tool'], r['tool'])}</span></td>"
             f"<td>{html.escape(r['model'] or '-')}</td>"
             f"<td>{fmt_int(r['input'])}</td><td>{fmt_int(r['output'])}</td>"
             f"<td><b>{fmt_int(r['total'])}</b></td></tr>"
         )
-    table = "".join(rows) or "<tr><td colspan='6' style='color:#a89a80'>暂无记录，先运行 scan</td></tr>"
+    table = "".join(rows) or "<tr><td colspan='6' style='color:#9b97a8'>暂无记录，先运行 scan</td></tr>"
 
     css = """
-    /* 水墨国潮 · 墨夜 */
+    /* 暗夜仪表盘 · Night Ops */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #1c1813; color: #e6dac0; padding: 24px;
-      font: 14px/1.6 'Noto Serif SC','Source Han Serif SC','STSong','SimSun',serif;
-      background-image:
-        radial-gradient(rgba(230,218,192,0.045) 1px, transparent 1.5px),
-        radial-gradient(rgba(230,218,192,0.04) 1px, transparent 1.5px);
-      background-size: 20px 20px, 20px 20px;
-      background-position: 0 0, 10px 10px;
+      background: #101014; color: #e8e6ef; padding: 24px;
+      font: 14px/1.6 -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+      background-image: radial-gradient(900px 300px at 50% -140px, rgba(229,99,153,0.08), transparent 70%);
+      background-repeat: no-repeat;
     }
-    h1 {
-      font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif;
-      font-size: 24px; letter-spacing: 6px; margin-bottom: 4px;
-    }
-    h1::after { content: ""; display: block; width: 70px; height: 3px; background: #c8543f; margin-top: 6px; }
-    .sub { color: #a89a80; font-size: 13px; margin-bottom: 20px; }
+    h1 { font-size: 22px; font-weight: 600; letter-spacing: 1px; margin-bottom: 4px; }
+    h1::after { content: ""; display: block; width: 56px; height: 2px; background: #e56399; margin-top: 8px; border-radius: 1px; }
+    .sub { color: #9b97a8; font-size: 13px; margin-bottom: 20px; }
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 20px; }
-    .card { background: #26211a; border: 1px solid rgba(230,218,192,0.14); border-radius: 5px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
-    .card:hover { transform: translateY(-2px); transition: transform .15s ease; }
-    .card-label { color: #a89a80; font-size: 13px; letter-spacing: 2px; }
-    .card-value { font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi',serif; font-size: 30px; font-weight: 700; margin: 6px 0 2px; }
-    .card-sub { color: #a89a80; font-size: 12px; }
-    .panel { background: #26211a; border: 1px solid rgba(230,218,192,0.14); border-radius: 5px; padding: 18px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); background-image: radial-gradient(600px 160px at 20% -40px, rgba(230,218,192,0.05), transparent 70%); }
-    .panel h2 { font-family: 'ZCOOL XiaoWei','Ma Shan Zheng','STKaiti','KaiTi','STSong',serif; font-size: 15px; letter-spacing: 4px; margin-bottom: 14px; color: #cbbda0; }
-    .panel h2::after { content: ""; display: block; width: 70px; height: 3px; background: #c8543f; margin-top: 6px; }
+    .card { background: #18181f; border: 1px solid rgba(232,230,239,0.08); border-radius: 10px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+    .card:hover { transform: translateY(-2px); transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; box-shadow: 0 12px 32px rgba(0,0,0,0.5); border-color: rgba(232,230,239,0.15); }
+    .card-label { color: #9b97a8; font-size: 12px; letter-spacing: 1px; }
+    .card-value { font-family: ui-monospace,'Cascadia Mono',Consolas,monospace; font-size: 30px; font-weight: 700; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+    .card-sub { color: #6f6b7d; font-size: 12px; font-family: ui-monospace,'Cascadia Mono',Consolas,monospace; }
+    .panel { background: #18181f; border: 1px solid rgba(232,230,239,0.08); border-radius: 10px; padding: 18px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+    .panel h2 { font-size: 14px; font-weight: 600; letter-spacing: 1px; margin-bottom: 14px; color: #e8e6ef; }
+    .panel h2::after { content: ""; display: block; width: 40px; height: 2px; background: #e56399; margin-top: 6px; border-radius: 1px; opacity: 0.8; }
     .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
     @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; color: #a89a80; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid rgba(230,218,192,0.14); white-space: nowrap; }
-    td { padding: 7px 10px; border-bottom: 1px dashed rgba(230,218,192,0.12); }
-    tbody tr:hover { background: rgba(230,218,192,0.05); }
-    .badge { display: inline-block; padding: 2px 10px; border-radius: 3px; color: #f4ecdc; font-size: 12px; }
+    th { text-align: left; color: #9b97a8; font-weight: 500; padding: 8px 10px; background: #1e1e26; border-bottom: 1px solid rgba(232,230,239,0.15); white-space: nowrap; }
+    td { padding: 7px 10px; border-bottom: 1px solid rgba(232,230,239,0.06); font-family: ui-monospace,'Cascadia Mono',Consolas,monospace; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: rgba(232,230,239,0.04); }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 6px; color: #101014; font-size: 12px; font-weight: 600; font-family: -apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; }
+    svg text { font-family: ui-monospace,'Cascadia Mono',Consolas,monospace; }
     """
 
     html_doc = f"""<!DOCTYPE html>

@@ -694,6 +694,9 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/repo/([0-9a-fA-F]{12})/branches$", path)
         if m:
             return self._branches(m.group(1))
+        m = re.match(r"^/api/repo/([0-9a-fA-F]{12})/graph$", path)
+        if m:
+            return self._graph(m.group(1))
         self._send(b"404 Not Found", 404, set_cookie=False)
 
     def do_POST(self):
@@ -709,6 +712,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True, "message": "已清除凭据"})
         if path == "/api/config":
             return self._config(body)
+        if path == "/api/pick-folder":
+            return self._pick_folder()
         if path == "/api/gh/repos":
             return self._gh_repos()
         if path == "/api/gh/clone":
@@ -776,6 +781,20 @@ class Handler(BaseHTTPRequestHandler):
             cfg["default_private"] = body["default_private"]
         save_config(cfg)
         return self.send_json({"ok": True, "config": cfg})
+
+    def _pick_folder(self):
+        """弹出系统文件夹选择框（本机原生对话框），返回所选路径；取消则返回空串。"""
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            path = filedialog.askdirectory(title="选择仓库目录")
+            root.destroy()
+        except Exception as exc:
+            return self.send_json({"ok": False, "error": "无法打开文件夹选择框: %s" % exc}, 500)
+        return self.send_json({"ok": True, "path": path or ""})
 
     def _local_repos(self):
         cfg = load_config()
@@ -856,6 +875,20 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": True, "path": path, **data})
         except Exception as exc:
             return self.send_json({"ok": False, "error": str(exc)}, 500)
+
+    def _graph(self, repo_id):
+        """分支树形图：git log --graph --oneline --decorate --all（纯本地操作，不联网）。"""
+        path = self._find_repo(repo_id)
+        if not path:
+            return self.send_json({"ok": False, "error": "仓库不存在，请刷新列表"}, 404)
+        rc, out, err = git(path, "log", "--graph", "--oneline", "--decorate",
+                           "--all", "--date-order", "-n", "120", timeout=30)
+        if rc != 0:
+            if ("unknown revision" in err or "bad default revision" in err
+                    or "does not have any commits" in err):
+                return self.send_json({"ok": True, "lines": [], "empty": True})
+            return self.send_json({"ok": False, "error": err or "git log 失败"}, 500)
+        return self.send_json({"ok": True, "lines": out.splitlines()})
 
     def _publish(self, body):
         path = str(body.get("path") or "").strip()

@@ -13,7 +13,7 @@ if errorlevel 1 (
 )
 rem 后台启动服务（浏览器由本脚本负责打开，服务端不弹窗）
 rem [single-instance] stop previous instance and free ports first
-powershell -NoProfile -Command "$pidFile='data\server.pid'; $p=Get-Content -LiteralPath $pidFile -ErrorAction SilentlyContinue; if($p){Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue}; Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue; 9600..9609 | ForEach-Object { Get-NetTCPConnection -State Listen -LocalPort $_ -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess } | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 300"
+powershell -NoProfile -Command "$pidFile='data\server.pid'; if(Test-Path -LiteralPath $pidFile){$p=Get-Content -LiteralPath $pidFile -ErrorAction SilentlyContinue; if($p -match '^\d+$'){ $proc=Get-Process -Id ([int]$p) -ErrorAction SilentlyContinue; if($proc -and $proc.ProcessName -match '^python'){ Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue } }; Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 300"
 start "" pythonw "%~dp0server.py" --no-browser %*
 timeout /t 3 /nobreak >nul
 set OK=0

@@ -56,11 +56,11 @@ function render(data) {
     <span class="chip ok">估算成本 <b>${money(s.estimated_usd)}</b></span>
     <span class="chip rmb">RMB <b>${rmb(s.estimated_usd, rate)}</b></span>
     <span class="chip">上报成本 <b>${money(s.reported_cost)}</b></span>
-    <span class="chip">Token <b>${tokens(s.total)}</b></span>
+    <span class="chip">Token${s.days ? "（近 " + s.days + " 天）" : "（全部）"} <b>${tokens(s.total)}</b></span>
     <span class="chip">记录 <b>${tokens(s.records)}</b></span>`;
   $("cards").innerHTML = `
     <div class="card"><b class="money">${money(s.estimated_usd)}</b> <b class="money rmb">${rmb(s.estimated_usd, rate)}</b><span>估算总成本（近 ${s.days || "全部"} 天）</span></div>
-    <div class="card"><b>${tokens(s.input + s.cached + s.cache_write)}</b><span>输入 Token（含缓存）</span></div>
+    <div class="card"><b>${tokens(s.input_incl != null ? s.input_incl : s.input)}</b><span>输入 Token（含缓存）</span></div>
     <div class="card"><b>${tokens(s.output)}</b><span>输出 Token</span></div>
     <div class="card"><b>${tokens(s.reasoning)}</b><span>推理 Token</span></div>
     <div class="card"><b>${tokens(s.records)}</b><span>记录条数</span></div>

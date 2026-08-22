@@ -1,7 +1,7 @@
 {
   "id": "ops",
-  "name": "Ops 指挥台",
+  "name": "曜石 Obsidian",
   "author": "PortWatch",
-  "desc": "深空蓝黑 · 左侧导航轨 · KPI 图标卡 · 迷你负载条 · 实时动态侧栏",
-  "colors": ["#0a0e14", "#131a24", "#5b9dff", "#3ecf8e", "#f5b544"]
+  "desc": "墨黑/灰白 · 信号青蓝 · 左侧导航轨 · KPI 图标卡 · 迷你负载条 · 实时动态侧栏",
+  "colors": ["#0f1216", "#171b21", "#4fa3ff", "#34c08c", "#f0a03c"]
 }

@@ -222,11 +222,14 @@ def match_price(model, prices):
 def compute_cost(input_t, output_t, cached_t, cache_write_t, reasoning_t, price):
     """按百万 Token 单价折算 USD。
 
-    口径说明：TokenWatch 入库时 input = 未命中 + 缓存读 + 缓存写（三部分合并），
-    因此输入价只对「未命中部分」收，缓存读/写按各自单价收，避免双重计费；
-    reasoning 已包含在 output 内（OpenAI 系 usage 口径），不另计价。
+    口径说明：TokenWatch 入库时各来源 input 语义不同——
+    deepseek/kimi 的 input 已含缓存读/写（input >= 缓存部分，相减得未命中）；
+    codex/openclaw 的 input 本身就是未缓存部分（通常远小于 cached，不能再减）。
+    按「input 是否覆盖缓存量」自动区分两种语义，不漏算也不双算；
+    缓存读/写按各自单价收；reasoning 已包含在 output 内，不另计价。
     """
-    uncached = max(input_t - cached_t - cache_write_t, 0)
+    cache_part = cached_t + cache_write_t
+    uncached = (input_t - cache_part) if input_t >= cache_part else input_t
     usd = (
         uncached * float(price["input"])
         + output_t * float(price["output"])
@@ -266,6 +269,8 @@ def load_stats(days=30):
         summary = {
             "input": s_input, "output": s_output, "cached": s_cached,
             "cache_write": s_cw, "reasoning": s_reasoning, "total": s_total,
+            # 含缓存输入 = 总量 - 输出（各来源 total 口径一致，均为含缓存总量）
+            "input_incl": s_total - s_output,
             "reported_cost": s_cost or 0, "records": s_records,
             "estimated_usd": 0.0, "days": days or 0,
         }

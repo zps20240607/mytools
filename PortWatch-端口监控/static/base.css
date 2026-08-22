@@ -537,7 +537,7 @@
 
 /* ---------- 侧栏小部件 ---------- */
 .widget {
-  border: 1px solid var(--line); border-radius: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
   background: var(--card);
   padding: 13px 14px;
 }
@@ -626,7 +626,7 @@
 .mini-tabs { display: flex; gap: 4px; }
 .mini-tab {
   font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
-  padding: 2px 9px; border-radius: 99px;
+  padding: 2px 9px; border-radius: 6px;
   border: 1px solid var(--line-2); color: var(--ink-3);
   transition: all 0.12s ease;
 }
@@ -775,7 +775,7 @@
 .fchip {
   display: inline-flex; align-items: center; gap: 6px;
   height: 27px; padding: 0 12px;
-  border: 1px solid var(--line-2); border-radius: 99px;
+  border: 1px solid var(--line-2); border-radius: 6px;
   background: var(--card);
   font-size: 11px; font-weight: 600; color: var(--ink-3);
   transition: all 0.12s ease;
@@ -806,7 +806,7 @@
 .status-pill {
   display: inline-flex; align-items: center;
   font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-  padding: 2px 8px; border-radius: 99px;
+  padding: 2px 8px; border-radius: 6px;
   border: 1px solid var(--line-2); color: var(--ink-3);
 }
 .status-pill.on {

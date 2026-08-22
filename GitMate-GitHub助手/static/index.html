@@ -69,8 +69,10 @@
       <button id="pullBtn" class="btn">拉取（快进）</button>
       <button id="pushBtn" class="btn">推送当前分支</button>
       <button id="snapBtn" class="btn">快照提交</button>
+      <button id="graphBtn" class="btn">🌲 分支图</button>
     </div>
     <div id="conflictBox"></div>
+    <pre id="graphBox" class="graph" hidden></pre>
     <table>
       <thead><tr><th>本地分支</th><th>状态</th><th class="num">领先/落后</th><th>上游</th><th class="num">操作</th></tr></thead>
       <tbody id="branchBody"></tbody>
@@ -89,7 +91,7 @@
     <h3>设置</h3>
     <h3 style="font-size:13px;color:var(--muted)">扫描根目录</h3>
     <ul id="rootsList" class="roots"></ul>
-    <div class="row"><input id="newRoot" type="text" placeholder="例如 D:\code" style="flex:1"><button id="addRoot" class="btn">添加</button></div>
+    <div class="row"><input id="newRoot" type="text" placeholder="例如 D:\code" style="flex:1"><button id="browseRoot" class="btn">📁 选择文件夹</button><button id="addRoot" class="btn">添加</button></div>
     <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="defPrivate"> 新建 GitHub 仓库默认私有</label>
     <div class="row end">
       <button id="logoutBtn" class="btn danger">清除 GitHub 凭据</button>

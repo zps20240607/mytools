@@ -167,7 +167,7 @@ $xaml = @'
           <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBox x:Name="Input" Style="{StaticResource RoundBox}" Height="34" FontSize="13.5"
-                 Foreground="#3A3A3A" Margin="0,0,8,0" ToolTip="添加新任务，回车提交，Esc 清空"/>
+                 Foreground="#2B2419" Margin="0,0,8,0" ToolTip="添加新任务，回车提交，Esc 清空"/>
         <CheckBox x:Name="ChkLong" Grid.Column="1" Content="长期" FontSize="12.5"
                   Foreground="#5D5343" VerticalAlignment="Center" Margin="0,0,8,0"
                   Cursor="Hand" ToolTip="勾选后，添加的任务将长期保留（不随每日清空）"/>
@@ -180,14 +180,14 @@ $xaml = @'
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <ItemsControl x:Name="TodoList"/>
         </ScrollViewer>
-        <TextBlock x:Name="EmptyHint" Text="今天没有待办，休息一下吧&#x0A;（双击任务可编辑）" Foreground="#9A9A9A" FontSize="13"
+        <TextBlock x:Name="EmptyHint" Text="今天没有待办，休息一下吧&#x0A;（双击任务可编辑）" Foreground="#5D5343" FontSize="13"
                    TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
       </Grid>
 
       <!-- Footer -->
-      <Border Grid.Row="4" BorderThickness="0,1,0,0" BorderBrush="#DCDCDC" Margin="0,6,0,0" Padding="18,6,10,8">
+      <Border Grid.Row="4" BorderThickness="0,1,0,0" BorderBrush="#2E2B2419" Margin="0,6,0,0" Padding="18,6,10,8">
         <Grid>
-          <TextBlock x:Name="CountText" Text="剩余 0 项" FontSize="12.5" Foreground="#8C8C8C" VerticalAlignment="Center"/>
+          <TextBlock x:Name="CountText" Text="剩余 0 项" FontSize="12.5" Foreground="#5D5343" VerticalAlignment="Center"/>
           <Button x:Name="BtnClearDone" HorizontalAlignment="Right" Style="{StaticResource IconBtn}"
                   Content="清除已完成" FontSize="12.5"/>
         </Grid>
@@ -206,6 +206,7 @@ $BtnReset     = $win.FindName('BtnReset')
 $BtnClose     = $win.FindName('BtnClose')
 $DateLine     = $win.FindName('DateLine')
 $InputBox     = $win.FindName('Input')
+$ChkLong      = $win.FindName('ChkLong')
 $BtnAdd       = $win.FindName('BtnAdd')
 $TodoList     = $win.FindName('TodoList')
 $EmptyHint    = $win.FindName('EmptyHint')
@@ -213,9 +214,9 @@ $CountText    = $win.FindName('CountText')
 $BtnClearDone = $win.FindName('BtnClearDone')
 
 $brushConverter = New-Object System.Windows.Media.BrushConverter
-$brushMain  = $brushConverter.ConvertFrom('#3A3A3A')
-$brushSub   = $brushConverter.ConvertFrom('#8C8C8C')
-$brushHover = $brushConverter.ConvertFrom('#E6E6E6')
+$brushMain  = $brushConverter.ConvertFrom('#2B2419')
+$brushSub   = $brushConverter.ConvertFrom('#5D5343')
+$brushHover = $brushConverter.ConvertFrom('#142B2419')
 $brushGold  = $brushConverter.ConvertFrom('#B78B3D')
 
 # ============================================================
@@ -230,11 +231,25 @@ function Load-Todos {
         $raw = Get-Content $DataFile -Raw -Encoding UTF8
         if ([string]::IsNullOrWhiteSpace($raw)) { return }
         $today = (Get-Date).ToString('yyyy-MM-dd')
-        foreach ($t in @(ConvertFrom-Json $raw)) {
+        # 拍平嵌套数组（兼容历史数据里 [[...]] 的结构），再逐个校验任务
+        $flat = New-Object System.Collections.ArrayList
+        $queue = New-Object System.Collections.Queue
+        foreach ($x in @(ConvertFrom-Json $raw)) { $queue.Enqueue($x) }
+        while ($queue.Count -gt 0) {
+            $x = $queue.Dequeue()
+            if ($null -eq $x) { continue }
+            if ($x -is [System.Collections.IEnumerable] -and $x -isnot [string] `
+                    -and $null -eq $x.PSObject.Properties['text']) {
+                foreach ($y in $x) { $queue.Enqueue($y) }
+            } else {
+                [void]$flat.Add($x)
+            }
+        }
+        foreach ($t in $flat) {
             if ($null -eq $t -or $null -eq $t.text) { continue }
             # 兼容旧数据：无 longTerm/day 字段视为今日短期任务
-            if (-not $t.PSObject.Properties['longTerm']) { $t | Add-Member NoteProperty longTerm $false }
-            if (-not $t.PSObject.Properties['day']) { $t | Add-Member NoteProperty day $today }
+            if (-not $t.PSObject.Properties['longTerm']) { Add-Member -InputObject $t NoteProperty longTerm $false }
+            if (-not $t.PSObject.Properties['day']) { Add-Member -InputObject $t NoteProperty day $today }
             # 短期任务跨天自动清空，长期任务保留
             if (-not [bool]$t.longTerm -and [string]$t.day -ne $today) { continue }
             [void]$script:todos.Add($t)
@@ -444,9 +459,12 @@ function Render-List {
     $TodoList.Items.Clear()
     $long  = @($script:todos | Where-Object { [bool]$_.longTerm })
     $short = @($script:todos | Where-Object { -not [bool]$_.longTerm })
-    if ($script:todos.Count -gt 0) {
+    # 只显示非空分区的节标，避免空节标堆叠
+    if ($long.Count -gt 0) {
         [void]$TodoList.Items.Add((New-SectionHeader '长期任务' '#A33B2C'))
         foreach ($t in $long) { [void]$TodoList.Items.Add((New-TodoRow $t)) }
+    }
+    if ($short.Count -gt 0) {
         [void]$TodoList.Items.Add((New-SectionHeader '今日任务' '#B78B3D'))
         foreach ($t in $short) { [void]$TodoList.Items.Add((New-TodoRow $t)) }
     }

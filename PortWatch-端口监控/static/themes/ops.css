@@ -1,7 +1,8 @@
 /* ============================================================
-   PortWatch主题 — 水墨国潮（唯一内置主题）
-   宣纸米色 · 墨色文字 · 朱砂强调 · 金色点缀，深浅双模式
-   浅色=宣纸 / 深色=墨夜，左侧导航轨 · KPI 图标卡 · 实时动态侧栏
+   PortWatch主题 — 曜石 Obsidian 现代科技风（唯一内置主题）
+   深色=墨黑(#0f1216) / 浅色=灰白(#f5f6f8)，信号青蓝强调
+   细发丝边框 · 8~10px 圆角 · 克制阴影 · 数字等宽
+   左侧导航轨 · KPI 图标卡 · 实时动态侧栏
    由 #themeCss 整包加载
    ============================================================ */
 
@@ -13,7 +14,7 @@
   font-display: swap;
 }
 
-/* ---------- 令牌 (Light · 雾灰) ---------- */
+/* ---------- 令牌 (Light · 灰白) ---------- */
 :root {
   color-scheme: light;
 
@@ -21,67 +22,74 @@
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --room: #eef2f6;        /* 雾灰底 */
+  --room: #f5f6f8;        /* 灰白底 */
   --card: #ffffff;
-  --card-2: #f4f7fa;      /* 下沉条带 */
+  --card-2: #eef0f3;      /* 下沉条带 */
   --paper: var(--card);
   --bg: var(--room);
 
-  --ink: #17202b;
-  --ink-2: #45525f;
-  --ink-3: #5f6d7a;
-  --ink-4: #5d6f83;
+  --ink: #1a1f26;
+  --ink-2: #5b6672;
+  --ink-3: #8a94a0;
+  --ink-4: #a3acb8;
 
-  --line: rgba(23, 32, 43, 0.1);
-  --line-2: rgba(23, 32, 43, 0.2);
+  --line: rgba(15, 23, 42, 0.09);
+  --line-2: rgba(15, 23, 42, 0.18);
 
-  --accent: #2f6fde;
+  --accent: #2470d6;
   --accent-ink: var(--accent);
   --on-accent: #ffffff;
-  --green: #127a4f;
+  --green: #34c08c;
   --red: #d1453d;
-  --amber: #a9740a;
+  --amber: #f0a03c;
   --purple: #7c5cff;
 
-  --shadow: 0 1px 2px rgba(23, 32, 43, 0.07);
-  --shadow-lg: 0 12px 32px rgba(23, 32, 43, 0.14);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
   --raised: var(--shadow);
   --plate-shadow: var(--shadow-lg);
-  --focus-ring: 0 0 0 2.5px rgba(47, 111, 222, 0.32);
+  --focus-ring: 0 0 0 2.5px rgba(36, 112, 214, 0.33);
 
   --content-max: 1320px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ---------- 令牌 (Dark · 深空) ---------- */
+/* ---------- 令牌 (Dark · 墨黑) ---------- */
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --room: #0a0e14;
-  --card: #131a24;
-  --card-2: #0d141d;
+  --room: #0f1216;
+  --card: #171b21;
+  --card-2: #1d232b;
   --paper: var(--card);
   --bg: var(--room);
 
-  --ink: #e6edf3;
-  --ink-2: #9fabb9;
-  --ink-3: #7d8a99;
-  --ink-4: #78869a;
+  --ink: #e6e9ee;
+  --ink-2: #9aa4b0;
+  --ink-3: #6b7580;
+  --ink-4: #57616c;
 
-  --line: rgba(148, 163, 184, 0.12);
-  --line-2: rgba(148, 163, 184, 0.24);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.16);
 
-  --accent: #5b9dff;
+  --accent: #4fa3ff;
   --accent-ink: var(--accent);
-  --on-accent: #0b1220;
-  --green: #3ecf8e;
-  --red: #f26d6d;
-  --amber: #f5b544;
+  --on-accent: #ffffff;
+  --green: #34c08c;
+  --red: #e5534b;
+  --amber: #f0a03c;
   --purple: #a78bfa;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.55);
-  --focus-ring: 0 0 0 2.5px rgba(91, 157, 255, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --focus-ring: 0 0 0 2.5px rgba(79, 163, 255, 0.33);
+}
+
+/* 深色模式：顶部极淡的 accent 光晕 */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(800px 300px at 50% -120px, rgba(79, 163, 255, 0.08), transparent 70%),
+    var(--room);
 }
 
 /* ---------- 基础 ---------- */
@@ -187,7 +195,7 @@ kbd {
   border-color: var(--line-2);
 }
 .nav-count {
-  min-width: 18px; padding: 0 5px; border-radius: 99px;
+  min-width: 18px; padding: 0 5px; border-radius: 6px;
   font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; text-align: center;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
@@ -310,7 +318,7 @@ a.icon-btn { text-decoration: none; }
 .sec-count {
   font-family: var(--font-mono); font-size: 9.5px; font-weight: 700;
   color: var(--ink-3);
-  border: 1px solid var(--line-2); border-radius: 99px; padding: 1px 8px;
+  border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 8px;
 }
 .sec-count:empty { display: none; }
 .sec-label.collapsible { width: 100%; cursor: pointer; transition: color 0.13s ease; }
@@ -332,7 +340,7 @@ a.icon-btn { text-decoration: none; }
   position: relative;
   display: flex; flex-direction: column; gap: 12px;
   padding: 16px;
-  border: 1px solid var(--line); border-radius: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
   background: var(--card);
   transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), border-color 0.15s ease;
   cursor: grab;
@@ -453,7 +461,7 @@ a.icon-btn { text-decoration: none; }
 .add-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
   min-height: 164px;
-  border: 1.5px dashed var(--line-2); border-radius: 12px;
+  border: 1.5px dashed var(--line-2); border-radius: 10px;
   background: transparent; color: var(--ink-3);
   cursor: pointer; font-weight: 600; font-size: 13px;
   transition: all 0.15s ease;
@@ -473,7 +481,7 @@ a.icon-btn { text-decoration: none; }
 
 /* 拖拽 */
 .drop-placeholder {
-  border: 1.5px dashed var(--accent); border-radius: 12px;
+  border: 1.5px dashed var(--accent); border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .app-card.lifted { box-shadow: var(--shadow-lg); cursor: grabbing; }
@@ -486,7 +494,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .ov {
   position: relative;
   padding: 13px 14px;
-  border: 1px solid var(--line); border-radius: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
   background: var(--card);
 }
 .ov-label {
@@ -510,7 +518,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 
 /* 新监听端口发现栏 */
 .port-discovery {
-  border: 1px solid var(--line); border-radius: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
   background: var(--card);
   box-shadow: var(--shadow);
 }
@@ -525,7 +533,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .port-discovery-head p { color: var(--ink-3); font-size: 10.5px; }
 .port-discovery-count {
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line-2));
-  border-radius: 99px;
+  border-radius: 6px;
   color: var(--accent);
   font-family: var(--font-mono); font-size: 10px; font-weight: 700;
 }
@@ -534,7 +542,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .port-discovery-name { color: var(--ink); font-size: 14px; font-weight: 700; }
 .port-discovery-status {
   padding: 2px 8px;
-  border-radius: 99px;
+  border-radius: 6px;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   font-family: var(--font-mono); font-size: 8.5px; font-weight: 700;
@@ -552,7 +560,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
    服务监控 — 表格
    ============================================================ */
 .tbl {
-  border: 1px solid var(--line); border-radius: 12px;
+  border: 1px solid var(--line); border-radius: 10px;
   background: var(--card);
   overflow: hidden;
 }
@@ -620,7 +628,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .w-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kw-tag {
   flex: none; font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-  padding: 1px 7px; border-radius: 99px;
+  padding: 1px 7px; border-radius: 6px;
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 14%, transparent);
 }
@@ -633,7 +641,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .chip {
   display: inline-flex; align-items: center; gap: 7px;
   height: 27px; padding: 0 6px 0 11px;
-  border: 1px solid var(--line-2); border-radius: 99px;
+  border: 1px solid var(--line-2); border-radius: 6px;
   background: var(--card);
   font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--ink);
 }
@@ -680,7 +688,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .modal {
   width: 540px; max-width: 100%;
   max-height: calc(100vh - 64px); overflow-y: auto;
-  border: 1px solid var(--line-2); border-radius: 14px;
+  border: 1px solid var(--line-2); border-radius: 10px;
   background: var(--card);
   box-shadow: var(--shadow-lg);
   padding: 26px 26px 22px;
@@ -739,7 +747,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 }
 .appearance-optional {
   padding: 2px 7px;
-  border: 1px solid var(--line-2); border-radius: 99px;
+  border: 1px solid var(--line-2); border-radius: 6px;
   color: var(--ink-3); background: var(--card);
 }
 .appearance-disclosure { color: var(--accent); }
@@ -792,12 +800,12 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .detect-option-title { font-size: 12.5px; font-weight: 700; }
 .detect-recommended {
   font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-  padding: 1px 7px; border-radius: 99px;
+  padding: 1px 7px; border-radius: 6px;
   color: var(--on-accent); background: var(--accent);
 }
 .detect-kind {
   font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-  padding: 1px 7px; border-radius: 99px;
+  padding: 1px 7px; border-radius: 6px;
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 14%, transparent);
 }
@@ -811,7 +819,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .icon-preview {
   width: 58px; height: 58px; flex: none;
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line-2); border-radius: 12px;
+  border: 1px solid var(--line-2); border-radius: 10px;
   background: var(--card-2); overflow: hidden;
   font-size: 22px; font-weight: 700; color: var(--ink);
 }
@@ -879,7 +887,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .palette-mask { align-items: flex-start; padding-top: 13vh; }
 .palette {
   width: 620px; max-width: 100%;
-  border: 1px solid var(--line-2); border-radius: 14px; background: var(--card);
+  border: 1px solid var(--line-2); border-radius: 10px; background: var(--card);
   box-shadow: var(--shadow-lg);
   overflow: hidden; transform: translateY(-8px);
   transition: transform 0.16s var(--ease);
@@ -907,7 +915,7 @@ body.dragging-on { cursor: grabbing; user-select: none; -webkit-user-select: non
 .pi-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pi-hint {
   flex: none; font-family: var(--font-mono); font-size: 9px; font-weight: 700;
-  color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 99px; padding: 1px 7px;
+  color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 7px;
 }
 .palette-empty { padding: 26px; text-align: center; font-size: 12.5px; color: var(--ink-4); }
 .palette-foot {

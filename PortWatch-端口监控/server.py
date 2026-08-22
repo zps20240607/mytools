@@ -145,13 +145,26 @@ def _check_running_instance():
             pid = int(f.read().strip())
     except (OSError, ValueError):
         return None
-    if _pid_alive(pid):
+    if _pid_alive(pid) and _pid_is_self(pid):
         return pid
     try:
         os.remove(PID_PATH)
     except OSError:
         pass
     return None
+
+
+def _pid_is_self(pid):
+    """校验 pid 对应进程的命令行确实指向当前 PortWatch 脚本，防止 pid 文件残留误判。"""
+    script = os.path.abspath(__file__).lower()
+    try:
+        out = run_ps(
+            "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "
+            "Get-CimInstance Win32_Process -Filter 'ProcessId = %d' "
+            "| Select-Object -ExpandProperty CommandLine" % pid, timeout=10)
+    except Exception:
+        return True  # 查询失败时保守视为本实例
+    return script in (out or "").lower()
 
 
 def append_marker(log_path, text):

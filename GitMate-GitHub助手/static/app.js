@@ -261,6 +261,7 @@ async function openBranch(repoId) {
   $("branchTitle").textContent = "分支管理 · " + repo.name;
   $("conflictBox").innerHTML = "";
   $("newBranch").value = "";
+  $("graphBox").hidden = true;
   await refreshBranches();
   $("modalBranch").hidden = false;
 }
@@ -362,11 +363,47 @@ async function branchAction(action, payload) {
       toast(res.message || "操作完成", res.ok !== false);
     }
     await refreshBranches();
+    refreshGraph();
     loadLocal();
   } catch (e) {
     toast("操作失败: " + e.message, false);
   }
 }
+
+/* ---- 分支图（树形可视化，纯本地 git log --graph，不联网） ---- */
+
+function renderGraph(lines) {
+  return lines.map((line) => {
+    let html = esc(line);
+    html = html.replace(/\*/g, '<span class="g-star">*</span>');
+    html = html.replace(/(\([^()]*\))/g, '<span class="g-deco">$1</span>');
+    return html;
+  }).join("\n");
+}
+
+async function refreshGraph() {
+  const box = $("graphBox");
+  if (box.hidden || !currentBranchRepo) return;
+  try {
+    const data = await api(`/api/repo/${currentBranchRepo.id}/graph`);
+    if (data.empty || !(data.lines || []).length) {
+      box.textContent = "（空仓库，还没有任何提交）";
+    } else {
+      box.innerHTML = renderGraph(data.lines);
+    }
+  } catch (e) {
+    box.textContent = "读取分支图失败: " + e.message;
+  }
+}
+
+$("graphBtn").addEventListener("click", async () => {
+  const box = $("graphBox");
+  if (!box.hidden) { box.hidden = true; return; }
+  if (!currentBranchRepo) return;
+  box.hidden = false;
+  box.textContent = "正在生成分支图…";
+  await refreshGraph();
+});
 
 /* ---- 设置 ---- */
 
@@ -493,6 +530,19 @@ $("addRoot").addEventListener("click", async () => {
   await api("/api/config", "POST", { roots: settings.roots });
   renderRoots();
   loadLocal();
+});
+$("browseRoot").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/pick-folder", "POST", {});
+    const v = (data.path || "").trim();
+    if (!v) return; // 用户取消了选择
+    $("newRoot").value = v;
+    if (!settings.roots.includes(v)) settings.roots.push(v);
+    await api("/api/config", "POST", { roots: settings.roots });
+    renderRoots();
+    loadLocal();
+    toast("已添加并扫描：" + v);
+  } catch (e) { toast(e.message, false); }
 });
 $("defPrivate").addEventListener("change", async () => {
   settings.defPrivate = $("defPrivate").checked;
